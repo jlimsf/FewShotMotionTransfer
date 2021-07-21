@@ -1,8 +1,8 @@
 target_root: ./data-test/       # target root
 source_root: ./data-test/       # source root
-output_name:
+output_name: finetune.mp4
 output_folder: video
-checkpoint_path: checkpoint
+checkpoint_path: /data/checkpoint_fsmt/
 name: selfatt                           # name of checkpoint
 finetune_sample: 20
 

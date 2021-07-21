@@ -84,15 +84,15 @@ class ReconstructDataSet(BaseDataSet):
         folder = self.folders[label]
 
         if self.stage == 'pretrain' or self.stage == 'train':
-            image = self.loader(os.path.join(folder, "image", name+".jpg"), mode="RGB")
+            image = self.loader(os.path.join(folder, "image", name+".png"), mode="RGB")
             body = self.loader(os.path.join(folder, "body", name+".png"), mode="L")
             foreground = self.loader(os.path.join(folder, "segmentation", name+".png"), mode="L")
             image_index = random.randrange(0, len(self.filelists[label]))
             image_name = self.filelists[label][image_index][0]
-            class_image = self.loader(os.path.join(folder, "image", image_name+".jpg"), mode="RGB")
+            class_image = self.loader(os.path.join(folder, "image", image_name+".png"), mode="RGB")
             class_foreground = self.loader(os.path.join(folder, "segmentation", image_name+".png"), mode="L")
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
-            IUV = self.loader(os.path.join(folder, "densepose", name+"_IUV.png"), mode="RGB")
+            IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
 
             transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV], [False, False, True, True, True, True, True])
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
@@ -213,10 +213,10 @@ class TransferDataSet(BaseDataSet):
         root = self.root
         src_root = self.src_root
 
-        image = self.loader(os.path.join(root, "image", name + ".jpg"), mode="RGB")
+        image = self.loader(os.path.join(root, "image", name + ".png"), mode="RGB")
         body = self.loader(os.path.join(root, "body", name + ".png"), mode="L")
         foreground = self.loader(os.path.join(root, "segmentation", name + ".png"), mode="L")
-        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[0] + ".jpg"), mode="RGB")
+        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[0] + ".png"), mode="RGB")
         class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".png"), mode="L")
         class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[0] + ".png"), mode="L")
         transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground], [False, False, True, True, True, True])

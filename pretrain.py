@@ -11,6 +11,10 @@ import os
 import utils
 import yaml
 
+import wandb
+wandb.init(sync_tensorboard=True)
+wandb.init(project="pretrain.py")
+
 def pretrain(config, writer, device_idxs=[0]):
 
     data_loader = DataLoader(ReconstructDataSet(config['dataroot'], config), batch_size=config['batchsize'], num_workers=8, pin_memory=True, shuffle=True)
@@ -21,6 +25,8 @@ def pretrain(config, writer, device_idxs=[0]):
     model = model.to(device)
     model = DataParallel(model, device_idxs)
     model.train()
+
+    
 
     totol_step = 0
     for epoch in trange(config['epochs']):
@@ -60,6 +66,8 @@ def pretrain(config, writer, device_idxs=[0]):
 
         model.module.save('latest')
         model.module.save(str(epoch+1))
+
+
 
         model.module.scheduler_G.step()
 

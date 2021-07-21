@@ -10,6 +10,7 @@ import numpy as np
 import math
 
 
+
 def weights_init(init_type='gaussian'):
     def init_fun(m):
         classname = m.__class__.__name__
@@ -75,10 +76,13 @@ class Model(nn.Module):
         self.prepare_for_pretrain()
         self.prepare_for_texture()
         self.restore_network()
+
         texture_stack = torch.zeros((n_class, 72, self.config['texture_size'], self.config['texture_size']))
         self.texture_stack = nn.Parameter(texture_stack)
         self.texture_list = [False for i in range(n_class)]
-        self.optimizer_texture_stack = torch.optim.Adam([self.texture_stack], lr=self.lr_T, betas=(0.5, 0.999))
+        # self.optimizer_texture_stack = torch.optim.Adam([self.texture_stack], lr=self.lr_T, betas=(0.5, 0.999))
+        self.optimizer_texture_stack = torch.optim.SGD([self.texture_stack], lr=0.01 )
+
 
     def prepare_for_finetune(self, data, background):
         self.prepare_for_train()
@@ -308,6 +312,7 @@ class Model(nn.Module):
         return mask_loss.mean()
 
     def forward(self, data, phase):
+        # with torch.cuda.amp.autocast():
         if phase == 'pretrain':
             return self.pretrain(data)
         if phase == 'pretrain_texture':
@@ -339,6 +344,7 @@ class Model(nn.Module):
     def load_network(self, network, network_label, epoch_label, save_dir=''):
         save_filename = '%s_net_%s.pth' % (epoch_label, network_label)
         print("load "+save_filename)
+        print (save_filename)
         if not save_dir:
             save_dir = self.save_dir
         save_path = os.path.join(save_dir, save_filename)
@@ -373,4 +379,3 @@ class Model(nn.Module):
 
                     print(sorted(not_initialized))
                     network.load_state_dict(model_dict)
-

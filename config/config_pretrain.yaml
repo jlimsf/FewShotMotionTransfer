@@ -1,8 +1,8 @@
-dataroot: ./data-train/
+dataroot: /data/top_data/train/
 checkpoint_path: checkpoint
 name: selfatt
 
-batchsize: 16
+batchsize: 32
 epochs: 10
 lr: 0.0002
 lr_milestone:
@@ -15,7 +15,7 @@ hflip: true
 URange: 256
 VRange: 256
 
-display_freq: 500
+display_freq: 300
 
 body_nc: 26
 
@@ -26,4 +26,3 @@ G:
   n_downs_content: 4          # number of downsampling layers in content encoder
   n_downs_class: 4            # number of downsampling layers in class model encoder
   input_dim: 26
-

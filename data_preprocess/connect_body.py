@@ -38,12 +38,13 @@ def create_pose(root_path):
     height = frame.shape[0]
     width = frame.shape[1]
     for j, image_path in tqdm(enumerate(images_path), total=len(images_path)):
-        if image_path.find("jpg") == -1:
+        if image_path.find("png") == -1:
             continue
         name = image_path[:-4]
 
         with open(os.path.join(root_path, "json", "{}_keypoints.json".format(name))) as f:
             item = json.load(f)
+
         people = item["people"]
         if len(people) == 0:
             continue

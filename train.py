@@ -10,19 +10,49 @@ import torch
 import os
 import utils
 import yaml
+import fairscale
+from fairscale.optim.oss import OSS
+from fairscale.nn.data_parallel import ShardedDataParallel as ShardedDDP
+import torch.distributed as dist
+import torch.multiprocessing as mp
+
+import wandb
+wandb.init(sync_tensorboard=True)
 
 def pretrain(config, writer, device_idxs=[0]):
 
+    world_size = 4
+    print (config)
+
+    # dist.init_process_group(backend='nccl', init_method="tcp://localhost:29501", rank=rank, world_size=4)
+
     dataset = ReconstructDataSet(config['dataroot'], config)
     sampler = utils.TrainSampler(config['batchsize'], dataset.filelists)
+
     data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=16, pin_memory=True)
 
     model = Model(config, "train")
     model.prepare_for_train(n_class=len(dataset.filelists))
-    device = torch.device("cuda:" + str(device_idxs[0]))
+    device = torch.device("cuda")
     model = model.to(device)
-    model = DataParallel(model, device_idxs)
+    model = DataParallel(model, [0,1,2,3])
+    # model = model.to(rank)
     model.train()
+
+    # optimizer_G = model.optimizer_G
+    # optimizer_TS = model.optimizer_texture_stack
+    # optimizer_T = model.optimizer_T
+
+    # base_optimizer_arguments = {'lr':0.0002, 'betas':(0.5,0.999)}
+
+
+    # optimizer_G = OSS(params=optimizer_G.param_groups, optim=torch.optim.Adam,  **base_optimizer_arguments)
+    # optimizer_TS = OSS(params=optimizer_TS.param_groups, optim=torch.optim.Adam, **base_optimizer_arguments)
+    # optimizer_T = OSS(params=optimizer_T.param_groups, optim=torch.optim.Adam,  **base_optimizer_arguments)
+
+    # model = ShardedDDP(model, [optimizer_G, optimizer_TS, optimizer_T])
+    # model = model.train()
+    # scaler = torch.cuda.amp.GradScaler(enabled=True)
 
     totol_step = 0
     for epoch in trange(config['epochs']):
@@ -30,6 +60,10 @@ def pretrain(config, writer, device_idxs=[0]):
         for i, data in iterator:
 
             data_gpu = {key: item.to(device) for key, item in data.items()}
+            # data_gpu = data
+            # # torch.cuda.empty_cache()
+            # with torch.cuda.amp.autocast(enabled=True):
+
             if i % 200 <= 100:
                 mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV")
             else:
@@ -42,18 +76,28 @@ def pretrain(config, writer, device_idxs=[0]):
             if i % 200 <= 100:
                 model.module.optimizer_G.zero_grad()
                 model.module.optimizer_texture_stack.zero_grad()
+                # optimizer_G.zero_grad()
+                # optimizer_TS.zero_grad()
             else:
                 model.module.optimizer_T.zero_grad()
+                # optimizer_T.zero_grad()
+
             loss_G = losses.get("loss_G_L1", 0) + losses.get("loss_G_GAN", 0) + losses.get("loss_G_GAN_Feat", 0) + losses.get("loss_G_mask", 0) \
                      + losses.get("loss_texture", 0) * config['l_texture'] + losses.get("loss_coordinate", 0) * config['l_coordinate'] \
                      + losses.get("loss_mask", 0) * config['l_mask']
 
             loss_G.backward()
+
             if i % 200 <= 100:
                 model.module.optimizer_G.step()
                 model.module.optimizer_texture_stack.step()
+                # optimizer_G.step()
+                # optimizer_TS.step()
+
             else:
                 model.module.optimizer_T.step()
+                # optimizer_T.step()
+
 
             writer.add_scalar("Loss/G", loss_G, totol_step)
 
@@ -80,13 +124,15 @@ def pretrain(config, writer, device_idxs=[0]):
 
             totol_step+=1
 
+
+
         model.module.save('latest_train')
         model.module.save(str(epoch+1)+"_train")
 
         model.module.scheduler_G.step()
 
-    torch.cuda.empty_cache()
 
+    dist.destroy_process_group()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -97,3 +143,13 @@ if __name__ == '__main__':
         config = yaml.load(f, Loader=yaml.FullLoader)
     writer = SummaryWriter(log_dir=os.path.join(config['checkpoint_path'], config["name"], "train"), comment=config['name'])
     pretrain(config, writer, args.device)
+
+    # mp.spawn(
+    #     pretrain,
+    #     args=(
+    #         config,
+    #         args.device
+    #     ),
+    #     nprocs=4,
+    #     join=True,
+    # )

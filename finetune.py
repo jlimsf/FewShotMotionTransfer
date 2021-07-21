@@ -22,6 +22,7 @@ def create_finetune_set(root, samples=20):
     folder = root
     newfolder = os.path.join(folder.replace(root, newroot), "001")
 
+
     os.system("mkdir -p {}/image".format(newfolder))
     os.system("mkdir -p {}/body".format(newfolder))
     os.system("mkdir -p {}/densepose".format(newfolder))
@@ -35,9 +36,9 @@ def create_finetune_set(root, samples=20):
 
     for name in filelist:
         name = name.strip()
-        shutil.copyfile(os.path.join(folder, "image", name + ".jpg"), os.path.join(newfolder, "image", name + ".jpg"))
+        shutil.copyfile(os.path.join(folder, "image", name + ".png"), os.path.join(newfolder, "image", name + ".png"))
         shutil.copyfile(os.path.join(folder, "body", name + ".png"), os.path.join(newfolder, "body", name + ".png"))
-        shutil.copyfile(os.path.join(folder, "densepose", name + "_IUV.png"), os.path.join(newfolder, "densepose", name + "_IUV.png"))
+        shutil.copyfile(os.path.join(folder, "densepose", name + ".png"), os.path.join(newfolder, "densepose", name + ".png"))
         shutil.copyfile(os.path.join(folder, "texture", name+".png"), os.path.join(newfolder, "texture", name+".png"))
         shutil.copyfile(os.path.join(folder, "segmentation", name+".png"), os.path.join(newfolder, "segmentation", name+".png"))
 
@@ -57,9 +58,11 @@ def finetune(config, writer, device_idxs=[0]):
 
     background = Image.open(os.path.join(config['source_root'], config['background']))
 
+
     image_size = config['resize']
     background = background.resize((image_size, image_size))
     background = torch.from_numpy(np.asarray(background).transpose((2, 0, 1)).astype(np.float32)/255).unsqueeze(0)
+    background = torch.ones(background.size())
 
     model = Model(config, "finetune")
     iter_loader = iter(data_loader)
@@ -132,12 +135,14 @@ def inference(model, config, device_idxs=[0]):
     device = torch.device("cuda:" + str(device_idxs[0]))
     image_size = config['resize']
 
-    fourcc = cv2.VideoWriter_fourcc(*'PIM1')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     folder = os.path.join(config["output_folder"], config["name"])
     if not os.path.exists(folder):
         os.system("mkdir -p "+folder)
-    writer = cv2.VideoWriter(os.path.join(folder, config['output_name']), fourcc, 24, (image_size*3, image_size))
 
+    print ("Writing to folder: {}".format(folder))
+    writer = cv2.VideoWriter(os.path.join(folder, config['output_name']), fourcc, 24, (image_size*3, image_size))
+    print (config['output_name'])
     with torch.no_grad():
         try:
             iterator = tqdm(enumerate(data_loader), total=len(data_loader))

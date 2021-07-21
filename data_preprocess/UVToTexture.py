@@ -30,24 +30,40 @@ parser.add_argument("root")
 args = parser.parse_args()
 
 folders = glob(osp(args.root, "*"))
-for root in folders:
-    print(root)
-    image_path_list = [x for x in os.listdir(osp(root, "image")) if x.endswith("jpg")]
+for root in tqdm(folders):
+
+    image_path_list = [x for x in os.listdir(osp(root, "image")) if x.endswith("png")]
     mask = np.zeros((128*4, 128*6), dtype=np.float32) + 1e-8
     Textures = np.zeros((128*4, 128*6, 3), dtype=np.float32)
     if not os.path.exists(os.path.join(root, "texture")):
         os.mkdir(os.path.join(root, "texture"))
-    for i, image_path in tqdm(enumerate(image_path_list), total=len(image_path_list)):
-        IUV_path = osp(root, "densepose", image_path[:-4] + "_IUV.png")
+
+    # if not '91l9zhxnd-S' in root:
+    #     continue
+    for i, image_path in enumerate(image_path_list):
+
+        IUV_path = osp(root, "densepose", image_path[:-4] + ".png")
+        # print (IUV_path)
+        # print (image_path[:-4])
+        # exit()
+
+
         if not os.path.exists(IUV_path):
+            print (IUV_path, 'does not exist')
+
             continue
+
         im = cv2.imread(osp(root, "image", image_path))
+
         IUV = cv2.imread(IUV_path)
         texture = GetTexture(im, IUV,)
         out_path = osp(root, "texture", image_path[:-4] + ".png")
+
         cv2.imwrite(out_path, texture)
         Textures += texture
         mask += (texture.sum(2) != 0)
+
+
 
     texture_target = Textures / np.expand_dims(mask, 2)
 

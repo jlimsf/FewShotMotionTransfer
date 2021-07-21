@@ -25,7 +25,7 @@ def pretrain(config, writer, device_idxs=[0]):
     for epoch in trange(config['epochs']):
         iterator = tqdm(enumerate(data_loader), total=len(data_loader))
         for i, data in iterator:
-
+            
             data_gpu = {key: item.to(device) for key, item in data.items()}
 
             loss, texture_input, texture_output, texture_target = model(data_gpu, "pretrain_texture")

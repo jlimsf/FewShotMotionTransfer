@@ -10,6 +10,7 @@ class TrainSampler(torch.utils.data.Sampler):
         total = 0
         for filelist in self.filelists:
             index = np.arange(total, total+len(filelist), dtype=np.int32)
+            
             self.indexes.append(index)
             total += len(filelist)
 

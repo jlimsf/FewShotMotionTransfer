@@ -1,8 +1,8 @@
-dataroot: ./data-train/
-checkpoint_path: checkpoint
+dataroot: /data/top_data/train/
+checkpoint_path: /data/checkpoint_fsmt/
 name: selfatt
 
-batchsize: 10
+batchsize: 8
 epochs: 15
 lr: 0.0002
 lr_T: 0.0002
