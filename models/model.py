@@ -64,12 +64,14 @@ class Model(nn.Module):
         self.EntropyLoss = nn.CrossEntropyLoss()
         G_params = list(self.generator.parameters())
         self.optimizer_G = torch.optim.Adam(G_params, lr=self.lr, betas=(0.5, 0.999))
+        # self.optimizer_G = torch.optim.SGD(G_params, lr=self.lr, momentum=0.9, nesterov =True)
         self.scheduler_G = torch.optim.lr_scheduler.MultiStepLR(self.optimizer_G, self.config["lr_milestone"], gamma=0.5)
 
     def prepare_for_texture(self):
         self.lr_T = self.config['lr_T']
         T_params = self.texture_generator.parameters()
         self.optimizer_T = torch.optim.Adam(T_params, lr=self.lr_T, betas=(0.5, 0.999))
+        # self.optimizer_T = torch.optim.SGD(T_params, lr=self.lr_T) #,  momentum=0.9, nesterov =True)
         self.scheduler_T = torch.optim.lr_scheduler.MultiStepLR(self.optimizer_T, self.config["lr_milestone"],  gamma=0.5)
 
     def prepare_for_train(self, n_class=10):
@@ -81,7 +83,7 @@ class Model(nn.Module):
         self.texture_stack = nn.Parameter(texture_stack)
         self.texture_list = [False for i in range(n_class)]
         # self.optimizer_texture_stack = torch.optim.Adam([self.texture_stack], lr=self.lr_T, betas=(0.5, 0.999))
-        self.optimizer_texture_stack = torch.optim.SGD([self.texture_stack], lr=0.01 )
+        self.optimizer_texture_stack = torch.optim.SGD([self.texture_stack], lr=self.lr_T *10) #,  momentum=0.9, nesterov =True)
 
 
     def prepare_for_finetune(self, data, background):
@@ -97,7 +99,8 @@ class Model(nn.Module):
         self.texture_feature = []
         self.background = nn.Parameter(background)
         self.background_start = background
-        self.optimizer_texture_stack = torch.optim.Adam([self.texture_stack, self.background], lr=self.lr_T, betas=(0.5, 0.999))
+        self.optimizer_texture_stack = torch.optim.Adam([self.texture_stack], lr=self.lr_T, betas=(0.5, 0.999))
+        # self.optimizer_texture_stack = torch.optim.SGD([self.texture_stack], lr=self.lr_T ,  momentum=0.9, nesterov =True)
 
     def _encode_label(self, label_map, nc, dropout, dropout_all):
         size = label_map.size()
@@ -250,7 +253,6 @@ class Model(nn.Module):
         class_weight_codes, class_weight_features = self.generator.weight_model(class_input)
         label_code, label_feature = self.generator.att(weight_codes, weight_features, class_weight_codes, class_weight_features, label_codes, label_features)
         mask, coordinate = self.generator.dec(pose_code, label_code, label_feature)
-
         texture = self.texture_generator.forward_feat(self.texture_stack).repeat(self.config['batchsize'], 1, 1, 1)
 
         image = data["image"] * data["foreground"].expand_as(data["image"]).to(torch.float32)

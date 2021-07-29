@@ -34,11 +34,15 @@ def create_pose(root_path):
     foot_index = [11, 14, 19, 20, 21, 22, 23, 24]
     images_path = os.listdir(osp(root_path, "image"))
     images_path.sort()
+    if len(images_path) == 0:
+        return
     frame = cv2.imread(osp(root_path, "image", images_path[0]))
+
     height = frame.shape[0]
     width = frame.shape[1]
-    for j, image_path in tqdm(enumerate(images_path), total=len(images_path)):
-        if image_path.find("png") == -1:
+    for j, image_path in enumerate(images_path):
+        if image_path.find("jpg") == -1:
+            # print ("con 4")
             continue
         name = image_path[:-4]
 
@@ -47,6 +51,7 @@ def create_pose(root_path):
 
         people = item["people"]
         if len(people) == 0:
+            print ("con 3")
             continue
 
         scale = np.zeros(len(people), dtype=np.float32)
@@ -65,6 +70,7 @@ def create_pose(root_path):
             if count > 0:
                 head_center = head_center / count
             else:
+                print ("con 2")
                 continue
 
             foot_center = np.zeros(2, dtype=np.float32)
@@ -103,8 +109,17 @@ parser = argparse.ArgumentParser()
 parser.add_argument("root")
 args = parser.parse_args()
 
-root_paths = glob.glob(osp(args.root, "*"))
+# root_paths = glob.glob(osp(args.root, "*"))
 
-for root_path in root_paths:
-    print(root_path)
+folders = []
+for mode in os.listdir(args.root):
+    mode_dir = os.path.join(args.root, mode)
+    for video in os.listdir(mode_dir):
+        video_dir = os.path.join(mode_dir, video)
+        for subject in os.listdir(video_dir):
+            subject_dir = os.path.join(video_dir, subject)
+            folders.append(subject_dir)
+
+for root_path in tqdm(folders):
+
     create_pose(root_path)

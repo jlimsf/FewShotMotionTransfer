@@ -29,28 +29,33 @@ parser = argparse.ArgumentParser()
 parser.add_argument("root")
 args = parser.parse_args()
 
-folders = glob(osp(args.root, "*"))
+# folders = glob(osp(args.root, "*"))
+folders = []
+for mode in os.listdir(args.root):
+    mode_dir = os.path.join(args.root, mode)
+    for video in os.listdir(mode_dir):
+        video_dir = os.path.join(mode_dir, video)
+        for subject in os.listdir(video_dir):
+            subject_dir = os.path.join(video_dir, subject)
+            folders.append(subject_dir)
+
+
 for root in tqdm(folders):
 
-    image_path_list = [x for x in os.listdir(osp(root, "image")) if x.endswith("png")]
+    image_path_list = [x for x in os.listdir(osp(root, "image")) if x.endswith("jpg")]
+
     mask = np.zeros((128*4, 128*6), dtype=np.float32) + 1e-8
     Textures = np.zeros((128*4, 128*6, 3), dtype=np.float32)
     if not os.path.exists(os.path.join(root, "texture")):
+
         os.mkdir(os.path.join(root, "texture"))
 
-    # if not '91l9zhxnd-S' in root:
-    #     continue
     for i, image_path in enumerate(image_path_list):
 
-        IUV_path = osp(root, "densepose", image_path[:-4] + ".png")
-        # print (IUV_path)
-        # print (image_path[:-4])
-        # exit()
-
+        IUV_path = osp(root, "densepose", image_path.split('.')[0] + ".jpg")
 
         if not os.path.exists(IUV_path):
             print (IUV_path, 'does not exist')
-
             continue
 
         im = cv2.imread(osp(root, "image", image_path))

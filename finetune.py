@@ -13,6 +13,10 @@ import os, cv2, traceback, shutil
 import utils
 import yaml
 
+# import wandb
+# wandb.init(sync_tensorboard=True)
+
+
 def create_finetune_set(root, samples=20):
     '''Sample images from the source person and create a small dataset for finetuning'''
     root = os.path.normpath(root)
@@ -98,7 +102,7 @@ def finetune(config, writer, device_idxs=[0]):
             writer.add_scalar("Loss/G", loss_G, totol_step)
             totol_step+=1
 
-        if config['display'] and epoch % config['display_frep'] == 0:
+        if config['display'] and epoch % config['display_freq'] == 0:
             body_sum = body.sum(dim=1, keepdim=True)
             B, _, H, W = cordinate.size()
             cordinate_zero = torch.zeros((B, 1, H, W), dtype=torch.float32, device=cordinate.device)

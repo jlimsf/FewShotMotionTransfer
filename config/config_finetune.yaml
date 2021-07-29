@@ -1,14 +1,14 @@
 target_root: ./data-test/       # target root
 source_root: ./data-test/       # source root
-output_name: finetune.mp4
+output_name: 300_finetune.mp4
 output_folder: video
-checkpoint_path: /data/checkpoint_fsmt/
+checkpoint_path: /data/FSMR_data/checkpoint_fsmt/
 name: selfatt                           # name of checkpoint
 finetune_sample: 20
 
-batchsize: 6
+batchsize: 1
 epochs: 1
-finetune_coor_step: 60                  # steps of finetuning geometry generator
+finetune_coor_step: 10                  # steps of finetuning geometry generator
 lr: 0.0002                              # learning rate of finetuning geometry generator
 lr_T: 0.005                             # learning rate of finetuning embedding of texture
 lr_milestone:                           # steps of learning rate decay
@@ -24,8 +24,8 @@ hflip: false
 URange: 256
 VRange: 256
 
-display: false
-display_freq: 250
+display: True
+display_freq: 50
 
 body_nc: 26
 
@@ -46,7 +46,7 @@ Texture_G:
   input_dim: 72
   output_dim: 72
 
-num_texture: 8
+num_texture: 20
 
 #Constraint
 l_texture: 0.0

@@ -26,8 +26,6 @@ def pretrain(config, writer, device_idxs=[0]):
     model = DataParallel(model, device_idxs)
     model.train()
 
-    
-
     totol_step = 0
     for epoch in trange(config['epochs']):
         iterator = tqdm(enumerate(data_loader), total=len(data_loader))

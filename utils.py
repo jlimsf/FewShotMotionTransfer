@@ -10,19 +10,31 @@ class TrainSampler(torch.utils.data.Sampler):
         total = 0
         for filelist in self.filelists:
             index = np.arange(total, total+len(filelist), dtype=np.int32)
-            
+
             self.indexes.append(index)
             total += len(filelist)
 
     def __iter__(self):
         batches = []
+
         for index in self.indexes:
             tmp = np.random.permutation(index)
-            end = len(tmp) // self.batch_size * self.batch_size
-            batches += list(tmp[:end])
+
+            if len(tmp) < self.batch_size:
+                #if we have less than batch size, fill the batch with the same images
+
+                expanded_tmp = np.random.choice(tmp, self.batch_size)
+                batches += list(expanded_tmp)
+
+
+            else:
+                end = len(tmp) // self.batch_size * self.batch_size
+                batches += list(tmp[:end])
 
         perms = np.random.permutation(np.arange(len(batches)//self.batch_size))
+
         for i in perms:
+
             yield batches[i*self.batch_size:(i+1)*self.batch_size]
 
     def __len__(self):

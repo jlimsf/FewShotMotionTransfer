@@ -1,4 +1,4 @@
-from DataSet import ReconstructDataSet
+from DataSet import ReconstructDataSet, RT_ReconstructDataSet, ValidationTransferDataSet
 from torch.utils.data.dataloader import DataLoader
 from tqdm import trange
 from models.model import Model
@@ -15,54 +15,111 @@ from fairscale.optim.oss import OSS
 from fairscale.nn.data_parallel import ShardedDataParallel as ShardedDDP
 import torch.distributed as dist
 import torch.multiprocessing as mp
+import os, cv2, traceback, shutil
+import numpy as np
 
 import wandb
 wandb.init(sync_tensorboard=True)
 
+def validation(model, validation_loader, device, epoch, subject_name, image_size, writer):
+
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    folder = os.path.join('validation/')
+    if not os.path.exists(folder):
+        os.system("mkdir -p "+folder)
+
+    subject_folder_name = os.path.join(folder, '/'.join(subject_name.split('/')[-3:]) )
+    if not os.path.exists(subject_folder_name):
+
+        os.makedirs(subject_folder_name)
+    print ("Writing to folder: {}".format(subject_folder_name))
+    out_fname = os.path.join(subject_folder_name, "{}_vid.mp4".format(epoch))
+    cv2_writer = cv2.VideoWriter(out_fname, fourcc, 24, (image_size*3, image_size))
+    print (out_fname)
+
+    background = torch.ones((image_size, image_size))
+    model = Model(config, "finetune")
+    iter_loader = iter(validation_loader)
+    model.prepare_for_finetune(next(iter_loader), background)
+    model = model.to(device)
+    model.background_start = model.background_start.to(device)
+
+
+    vid_to_tensor = []
+
+    with torch.no_grad():
+        try:
+            iterator = tqdm(enumerate(validation_loader), total=len(validation_loader))
+            for i, data in iterator:
+                data_gpu = {key: item.to(device) for key, item in data.items()}
+
+                mask, fake_image, real_image, body, coordinate, texture = model(data_gpu, "inference")
+
+                label = utils.d_colorize(data_gpu["body"]).cpu().numpy()
+                B, _, H, W = coordinate.size()
+
+                real_image = data['image'].cpu().numpy()
+                fake_image = np.clip(fake_image.cpu().numpy(), 0, 1)
+
+                outputs = np.concatenate((real_image, label, fake_image), axis=3)
+                for output in outputs:
+                    write_image = (output[::-1].transpose((1, 2, 0)) * 255).astype(np.uint8)
+
+                    vid_to_tensor.append(torch.tensor(write_image))
+
+                    cv2_writer.write(write_image)
+
+        except Exception as e:
+            print(traceback.format_exc())
+            cv2_writer.release()
+
+        cv2_writer.release()
+
+    vid_to_tensor = torch.stack(vid_to_tensor, dim =0).unsqueeze(0)
+    vid_to_tensor = vid_to_tensor.permute(0,1,4,2,3)
+    
+    writer.add_video(tag="Validation/Video", vid_tensor = vid_to_tensor, fps=60)
+
+
 def pretrain(config, writer, device_idxs=[0]):
 
-    world_size = 4
     print (config)
+    device = torch.device("cuda:" + str(device_idxs[0]))
 
     # dist.init_process_group(backend='nccl', init_method="tcp://localhost:29501", rank=rank, world_size=4)
 
     dataset = ReconstructDataSet(config['dataroot'], config)
+    dataset_RT = RT_ReconstructDataSet('/data/FSMR_data/rebecca_taylor_top/train', config)
+
     sampler = utils.TrainSampler(config['batchsize'], dataset.filelists)
+    sampler_RT = utils.TrainSampler(config['batchsize'], dataset_RT.filelists)
 
     data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=16, pin_memory=True)
+    data_loader_RT = DataLoader(dataset_RT, batch_sampler=sampler_RT, num_workers=0, pin_memory=True)
 
-    model = Model(config, "train")
-    model.prepare_for_train(n_class=len(dataset.filelists))
-    device = torch.device("cuda")
-    model = model.to(device)
-    model = DataParallel(model, [0,1,2,3])
-    # model = model.to(rank)
-    model.train()
+    #/data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/'
+    validation_dataset = ValidationTransferDataSet(root='/data/FSMR_data/top_data/train/91-2Jb8DkfS/',
+                                        src_root='/data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/',
+                                        config=config)
 
-    # optimizer_G = model.optimizer_G
-    # optimizer_TS = model.optimizer_texture_stack
-    # optimizer_T = model.optimizer_T
-
-    # base_optimizer_arguments = {'lr':0.0002, 'betas':(0.5,0.999)}
-
-
-    # optimizer_G = OSS(params=optimizer_G.param_groups, optim=torch.optim.Adam,  **base_optimizer_arguments)
-    # optimizer_TS = OSS(params=optimizer_TS.param_groups, optim=torch.optim.Adam, **base_optimizer_arguments)
-    # optimizer_T = OSS(params=optimizer_T.param_groups, optim=torch.optim.Adam,  **base_optimizer_arguments)
-
-    # model = ShardedDDP(model, [optimizer_G, optimizer_TS, optimizer_T])
-    # model = model.train()
-    # scaler = torch.cuda.amp.GradScaler(enabled=True)
-
+    validation_loader = DataLoader(validation_dataset,
+                                1, num_workers=4,
+                                pin_memory=True,
+                                shuffle=False)
     totol_step = 0
     for epoch in trange(config['epochs']):
+
+        model = Model(config, "train")
+        model.prepare_for_train(n_class=len(dataset.filelists))
+        model = model.to(device)
+        model = DataParallel(model,  device_idxs)
+        model.train()
+
         iterator = tqdm(enumerate(data_loader), total=len(data_loader))
         for i, data in iterator:
 
             data_gpu = {key: item.to(device) for key, item in data.items()}
-            # data_gpu = data
-            # # torch.cuda.empty_cache()
-            # with torch.cuda.amp.autocast(enabled=True):
 
             if i % 200 <= 100:
                 mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV")
@@ -124,15 +181,20 @@ def pretrain(config, writer, device_idxs=[0]):
 
             totol_step+=1
 
+            break
+
+
+        #validate
+
 
 
         model.module.save('latest_train')
         model.module.save(str(epoch+1)+"_train")
 
         model.module.scheduler_G.step()
+        print ("Validation")
+        validation(model, validation_loader, device,epoch, subject_name = validation_loader.dataset.src_root, image_size=config['resize'], writer=writer)
 
-
-    dist.destroy_process_group()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -143,13 +205,3 @@ if __name__ == '__main__':
         config = yaml.load(f, Loader=yaml.FullLoader)
     writer = SummaryWriter(log_dir=os.path.join(config['checkpoint_path'], config["name"], "train"), comment=config['name'])
     pretrain(config, writer, args.device)
-
-    # mp.spawn(
-    #     pretrain,
-    #     args=(
-    #         config,
-    #         args.device
-    #     ),
-    #     nprocs=4,
-    #     join=True,
-    # )
