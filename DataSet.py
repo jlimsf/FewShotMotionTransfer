@@ -297,7 +297,6 @@ class RT_ReconstructDataSet(BaseDataSet):
         name = self.filelist[index][0]
         folder = self.folders[label]
 
-        print (label)
         if self.stage == 'pretrain' or self.stage == 'train':
 
             image = self.loader(os.path.join(folder, "image", name+".jpg"), mode="RGB")
