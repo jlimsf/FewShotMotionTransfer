@@ -142,7 +142,9 @@ def pretrain(config, writer, device_idxs=[0]):
     totol_step = 0
 
     for x in data_loader:
-        print(x)
+        print(x.keys())
+        print (x['class_image'].shape)
+        print (x['image'].shape)
         exit()
 
 

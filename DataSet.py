@@ -8,6 +8,8 @@ import numpy as np
 import glob
 import random
 import imageio, cv2
+import math
+
 
 class BaseDataSet(dataset.Dataset):
 
@@ -81,6 +83,66 @@ class ReconstructDataSet(BaseDataSet):
     def __len__(self):
         return len(self.filelist)
 
+    # def get_params(self, img, output_size):
+    #     """Get parameters for ``crop`` for a random crop.
+    #     Args:
+    #         img (PIL Image): Image to be cropped.
+    #         output_size (tuple): Expected output size of the crop.
+    #     Returns:
+    #         tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
+    #     """
+    #     #https://github.com/pytorch/vision/blob/7ae1b8c9c00e2bec1b0c111cd1299415519ef002/torchvision/transforms/transforms.py#L473
+    #     w,h = img.size
+    #
+    #     th, tw = output_size
+    #     if w == tw and h == th:
+    #         return 0, 0, h, w
+    #
+    #     i = random.randint(0, h - th)
+    #     j = random.randint(0, w - tw)
+    #     return i, j, th, tw
+
+    def get_params(self, img, scale, ratio):
+        """Get parameters for ``crop`` for a random sized crop.
+        Args:
+            img (PIL Image): Image to be cropped.
+            scale (tuple): range of size of the origin size cropped
+            ratio (tuple): range of aspect ratio of the origin aspect ratio cropped
+        Returns:
+            tuple: params (i, j, h, w) to be passed to ``crop`` for a random
+                sized crop.
+        """
+        width, height = img.size
+        area = height * width
+
+        for attempt in range(10):
+            target_area = random.uniform(*scale) * area
+            log_ratio = (math.log(ratio[0]), math.log(ratio[1]))
+            aspect_ratio = math.exp(random.uniform(*log_ratio))
+
+            w = int(round(math.sqrt(target_area * aspect_ratio)))
+            h = int(round(math.sqrt(target_area / aspect_ratio)))
+
+            if 0 < w <= width and 0 < h <= height:
+                i = random.randint(0, height - h)
+                j = random.randint(0, width - w)
+                return i, j, h, w
+
+        # Fallback to central crop
+        in_ratio = float(width) / float(height)
+        if (in_ratio < min(ratio)):
+            w = width
+            h = int(round(w / min(ratio)))
+        elif (in_ratio > max(ratio)):
+            h = height
+            w = int(round(h * max(ratio)))
+        else:  # whole image
+            w = width
+            h = height
+        i = (height - h) // 2
+        j = (width - w) // 2
+        return i, j, h, w
+
     def GetTexture(self, im, IUV):
         U = IUV[:, :, 1]
         V = IUV[:, :, 2]
@@ -101,6 +163,8 @@ class ReconstructDataSet(BaseDataSet):
 
     def __getitem__(self, index):
 
+        #random crop parameters
+
         label = self.filelist[index][1]
         name = self.filelist[index][0]
         folder = self.folders[label]
@@ -118,10 +182,14 @@ class ReconstructDataSet(BaseDataSet):
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
             IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
 
+            print (image)
+            i, j, h, w = self.get_params(image, scale=(0.08, 1.0), ratio=(1.0, 1.0))
+            print (i,j,h,w)
+            new_im = F.resized_crop(image, i, j, h, w, self.size, Image.BILINEAR)
+            print (new_im)
+            new_im.save("Crop.png")
+            exit()
 
-            # transform_iuv = self._transform([IUV], [True] )[0]
-
-            # print (np.asarray(IUV).shape)
             transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
                                                     [False, False, True, True, True, True, True])
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
@@ -161,50 +229,49 @@ class ReconstructDataSet(BaseDataSet):
 
         if self.stage == 'train':
             indexes = random.sample(list(range(0, len(self.filelists[label]))), 1)
+            print (indexes)
+
+            exit()
             for i in indexes:
 
                 name = self.filelists[label][i][0]
-                print (name)
-                print (folder)
+
                 this_densepose_fp = os.path.join(folder, "densepose", name+".png")
                 this_densepose_arr = cv2.imread(this_densepose_fp)
 
                 this_image_fp = os.path.join(folder, 'image', name+".png")
                 this_image_arr = cv2.imread(this_image_fp)
                 #extract texture on the fly
-                print (this_image_fp)
-                print (this_densepose_fp)
+
                 texture_ = self.GetTexture(this_image_arr, this_densepose_arr,)
-                cv2.imwrite('texture_fly_2.png', texture_)
-                # texture_pil_ = Image.fromarray(texture_, mode='RGB')
-                # texture_pil_.save('texture_fly.png')
-                # texture_ndarray_ = np.asarray(texture_pil_)
-                # texture_ = F.to_tensor(texture_)
-                texture_fp = os.path.join(folder, "texture", name+".png")
-                texture_pil = self.loader(texture_fp, mode="RGB")
-                texture_pil.save('texture_not_fly.png')
-                texture_ndarray = np.asarray(texture_pil)
-                print (np.unique(texture_, return_counts=True))
-                print (np.unique(texture_ndarray,return_counts=True))
-                print ((texture_==texture_pil).all())
-                exit()
-                texture_tensor = F.to_tensor(texture_pil)
-                print (texture_tensor)
-                print (texture_)
-                print (texture_.shape, texture_.dtype)
-                print (texture_tensor.shape, texture_tensor.dtype)
-                print (texture_fp)
-                print (name)
-                print (this_densepose_fp ,this_image_fp)
-                print (torch.eq(texture_tensor, texture_))
-                print (torch.all(texture_tensor.eq(texture_)))
-                print (torch.allclose(texture_tensor, texture_))
-                exit()
+                texture_tensor = F.to_tensor(texture_)
+
+                # texture_fp = os.path.join(folder, "texture", name+".png")
+                # texture_pil = self.loader(texture_fp, mode="RGB")
+                # texture_pil.save('texture_not_fly.png')
+                # texture_ndarray = np.asarray(texture_pil)
+
+                # _, counts_ = np.unique(texture_, return_counts=True)
+                # _, counts = np.unique(texture_ndarray,return_counts=True)
+
+                # texture_tensor = F.to_tensor(texture_pil)
+                # print (texture_tensor)
+                # print (texture_)
+                # print (texture_.shape, texture_.dtype)
+                # print (texture_tensor.shape, texture_tensor.dtype)
+                # print (texture_fp)
+                # print (name)
+                # print (this_densepose_fp ,this_image_fp)
+                # print (torch.eq(texture_tensor, texture_))
+                # print (torch.all(texture_tensor.eq(texture_)))
+                # print (torch.allclose(texture_tensor, texture_))
+                # exit()
 
                 texture_size = texture_tensor.size()[1]//4
                 texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
                 texture_tensor = texture_tensor.permute(1, 3, 0, 2, 4)
                 texture_tensor = texture_tensor.contiguous().view(24*3, texture_size, texture_size)
+
 
             data["texture"] = texture_tensor.unsqueeze(0)
 
