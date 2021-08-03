@@ -259,7 +259,7 @@ class ReconstructDataSet(BaseDataSet):
                     [True, False], crop_params = [i,j,h,w], return_tensor=False )
 
                 transforms_densepose.save('debug_uv.png')
-                transforms_densepose.save('debug_img.png')
+                transforms_image.save('debug_img.png')
                 exit()
                 texture_ = self.GetTexture(np.asarray(transforms_densepose), np.asarray(transforms_image))
                 texture_ndarray = np.asarray(texture_)
