@@ -83,24 +83,39 @@ class ReconstructDataSet(BaseDataSet):
     def __len__(self):
         return len(self.filelist)
 
-    # def get_params(self, img, output_size):
-    #     """Get parameters for ``crop`` for a random crop.
-    #     Args:
-    #         img (PIL Image): Image to be cropped.
-    #         output_size (tuple): Expected output size of the crop.
-    #     Returns:
-    #         tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
-    #     """
-    #     #https://github.com/pytorch/vision/blob/7ae1b8c9c00e2bec1b0c111cd1299415519ef002/torchvision/transforms/transforms.py#L473
-    #     w,h = img.size
-    #
-    #     th, tw = output_size
-    #     if w == tw and h == th:
-    #         return 0, 0, h, w
-    #
-    #     i = random.randint(0, h - th)
-    #     j = random.randint(0, w - tw)
-    #     return i, j, th, tw
+    def _transform(self, images, tolabel, crop_params):
+
+        i,j,h,w = crop_params
+
+        #random resize crop
+
+        if 'resize' in self.config:
+            old_size, _ = images[0].size
+            size = [self.config['resize'], self.config['resize']]
+            resize = transforms.Resize(size, Image.NEAREST)
+            for i in range(len(images)):
+                this_im = images[i]
+                new_im = F.resized_crop(this_im, i, j, h, w, self.size, Image.BILINEAR)
+                resized = resize(new_im)
+                images[i] = resized
+                resized.save('{}.png'.format(i))
+
+        if 'hflip' in self.config and self.config['hflip']:
+            flip = random.randint(0, 1)
+        else:
+            flip = 0
+
+        if flip==1:
+            for i in range(len(images)):
+                images[i] = F.hflip(images[i])
+
+        for i in range(len(images)):
+            if tolabel[i]:
+                images[i] = self.label_to_tensor(images[i])
+            else:
+                images[i] = F.to_tensor(images[i])
+
+        return images
 
     def get_params(self, img, scale, ratio):
         """Get parameters for ``crop`` for a random sized crop.
@@ -182,19 +197,15 @@ class ReconstructDataSet(BaseDataSet):
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
             IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
 
-            print (image)
-            i, j, h, w = self.get_params(image, scale=(0.08, 1.0), ratio=(1.0, 1.0))
-            print (i,j,h,w)
-            new_im = F.resized_crop(image, i, j, h, w, self.size, Image.BILINEAR)
-            print (new_im)
-            new_im.save("Crop.png")
-            exit()
+
+            i, j, h, w = self.get_params(image, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.))
 
             transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
-                                                    [False, False, True, True, True, True, True])
+                                                    [False, False, True, True, True, True, True], crop_params = [i,j,h,w])
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
 
+            exit()
             data["mask"] = data["IUV"][-1,:,:]
             data["foreground"] = (data["foreground"] > 0).to(torch.long)
             data["U"] = data["IUV"][1,:,:].unsqueeze(0).to(torch.float32)/self.config["URange"]
