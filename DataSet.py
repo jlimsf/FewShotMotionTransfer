@@ -83,7 +83,7 @@ class ReconstructDataSet(BaseDataSet):
     def __len__(self):
         return len(self.filelist)
 
-    def _transform(self, images, tolabel, crop_params, return_tensor=True):
+    def _transform(self, images, tolabel, crop_params, to_flip, return_tensor=True):
 
         i,j,h,w = crop_params
 
@@ -99,12 +99,8 @@ class ReconstructDataSet(BaseDataSet):
                 resized = resize(new_im)
                 images[i] = resized
 
-        if 'hflip' in self.config and self.config['hflip']:
-            flip = random.randint(0, 1)
-        else:
-            flip = 0
 
-        if flip==1:
+        if to_flip==1:
             for i in range(len(images)):
                 images[i] = F.hflip(images[i])
 
@@ -212,9 +208,13 @@ class ReconstructDataSet(BaseDataSet):
 
 
             i, j, h, w = self.get_params(image, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.))
+            if 'hflip' in self.config and self.config['hflip']:
+                flip_val = random.randint(0, 1)
+            else:
+                flip_val = 0
 
             transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
-                                                    [False, False, True, True, True, True, True], crop_params = [i,j,h,w])
+                                                    [False, False, True, True, True, True, True], crop_params = [i,j,h,w], to_flip = flip_val)
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
 
