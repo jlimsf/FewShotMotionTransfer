@@ -259,6 +259,7 @@ class ReconstructDataSet(BaseDataSet):
 
                 transforms_densepose.save('debug_uv_.png')
                 transforms_image.save('debug_img_.png')
+                print ('s')
                 exit()
                 texture_ = self.GetTexture(np.asarray(transforms_densepose), np.asarray(transforms_image))
                 texture_ndarray = np.asarray(texture_)
