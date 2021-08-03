@@ -7,7 +7,7 @@ from torchvision.transforms import functional as F
 import numpy as np
 import glob
 import random
-import imageio
+import imageio, cv2
 
 class BaseDataSet(dataset.Dataset):
 
@@ -20,23 +20,7 @@ class BaseDataSet(dataset.Dataset):
         img = Image.open(path)
         return img.convert(mode)
 
-    def GetTexture(self, im, IUV):
-        U = IUV[:, :, 1]
-        V = IUV[:, :, 2]
-        Texture = np.zeros((24, 128, 128, 3), dtype=np.uint8)
-        for PartInd in range(1, 25):
-            tex = Texture[PartInd - 1, :, :, :].squeeze()
-            x, y = np.where(IUV[:, :, 0] == PartInd)
-            u = U[x, y] // 2
-            v = V[x, y] // 2
-            tex[u, v] = im[x, y]
-            Texture[PartInd - 1] = tex
-        TextureIm = np.zeros((128 * 4, 128 * 6, 3), dtype=np.uint8)
-        for i in range(len(Texture)):
-            x = i // 6 * 128
-            y = i % 6 * 128
-            TextureIm[x:x + 128, y:y + 128] = Texture[i]
-        return TextureIm
+
 
 
     def label_to_tensor(self, label):
@@ -100,6 +84,24 @@ class ReconstructDataSet(BaseDataSet):
     def __len__(self):
         return len(self.filelist)
 
+    def GetTexture(self, im, IUV):
+        U = IUV[:, :, 1]
+        V = IUV[:, :, 2]
+        Texture = np.zeros((24, 128, 128, 3), dtype=np.uint8)
+        for PartInd in range(1, 25):
+            tex = Texture[PartInd - 1, :, :, :].squeeze()
+            x, y = np.where(IUV[:, :, 0] == PartInd)
+            u = U[x, y] // 2
+            v = V[x, y] // 2
+            tex[u, v] = im[x, y]
+            Texture[PartInd - 1] = tex
+        TextureIm = np.zeros((128 * 4, 128 * 6, 3), dtype=np.uint8)
+        for i in range(len(Texture)):
+            x = i // 6 * 128
+            y = i % 6 * 128
+            TextureIm[x:x + 128, y:y + 128] = Texture[i]
+        return TextureIm
+
     def __getitem__(self, index):
 
         label = self.filelist[index][1]
@@ -110,12 +112,15 @@ class ReconstructDataSet(BaseDataSet):
             image = self.loader(os.path.join(folder, "image", name+".png"), mode="RGB")
             body = self.loader(os.path.join(folder, "body", name+".png"), mode="L")
             foreground = self.loader(os.path.join(folder, "segmentation", name+".png"), mode="L")
+
+            #Targets
             image_index = random.randrange(0, len(self.filelists[label]))
             image_name = self.filelists[label][image_index][0]
             class_image = self.loader(os.path.join(folder, "image", image_name+".png"), mode="RGB")
             class_foreground = self.loader(os.path.join(folder, "segmentation", image_name+".png"), mode="L")
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
             IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
+
 
             # transform_iuv = self._transform([IUV], [True] )[0]
 
@@ -124,9 +129,6 @@ class ReconstructDataSet(BaseDataSet):
                                                     [False, False, True, True, True, True, True])
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
-
-            # print (np.asarray(data["IUV"]).shape)
-            # print (self.stage)
 
             data["mask"] = data["IUV"][-1,:,:]
             data["foreground"] = (data["foreground"] > 0).to(torch.long)
@@ -165,8 +167,39 @@ class ReconstructDataSet(BaseDataSet):
             for i in indexes:
 
                 name = self.filelists[label][i][0]
-                texture = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
-                texture_tensor = F.to_tensor(texture)
+                this_densepose_fp = os.path.join(folder, "densepose", name+".png")
+                this_densepose_arr = cv2.imread(this_densepose_fp)
+
+                this_image_fp = os.path.join(folder, 'image', name+".png")
+                this_image_arr = cv2.imread(this_image_fp)
+                #extract texture on the fly
+
+                texture_ = self.GetTexture(this_image_arr, this_densepose_arr)
+                texture_pil_ = Image.fromarray(texture_, mode='RGB')
+                texture_pil_.save('texture_fly.png')
+                texture_ndarray_ = np.asarray(texture_pil_)
+                # texture_ = F.to_tensor(texture_)
+
+                texture_pil = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
+                texture_pil.save('texture_not_fly.png')
+                texture_ndarray = np.asarray(texture_pil)
+                print (np.unique(texture_))
+                print (np.unique(texture_ndarray))
+                print ((texture_ndarray_==texture_ndarray).all())
+                exit()
+                texture_tensor = F.to_tensor(texture_pil)
+                print (texture_tensor)
+                print (texture_)
+                print (texture_.shape, texture_.dtype)
+                print (texture_tensor.shape, texture_tensor.dtype)
+                print (texture_fp)
+                print (name)
+                print (this_densepose_fp ,this_image_fp)
+                print (torch.eq(texture_tensor, texture_))
+                print (torch.all(texture_tensor.eq(texture_)))
+                print (torch.allclose(texture_tensor, texture_))
+                exit()
+
                 texture_size = texture_tensor.size()[1]//4
                 texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
                 texture_tensor = texture_tensor.permute(1, 3, 0, 2, 4)

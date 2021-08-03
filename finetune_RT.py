@@ -126,7 +126,7 @@ def pretrain(config, writer, device_idxs=[0]):
     sampler_RT = utils.TrainSampler(config['batchsize'], dataset_RT.filelists)
     joint_sampler = utils.TrainSampler(config['batchsize'], joined_filelist)
 
-    data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=16, pin_memory=True)
+    data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=0, pin_memory=True)
     data_loader_RT = DataLoader(dataset_RT, batch_sampler=sampler_RT, num_workers=0, pin_memory=True)
     joint_dataloader = DataLoader(joint_dataset, batch_sampler=joint_sampler, num_workers=0, pin_memory=True)
 
@@ -141,6 +141,10 @@ def pretrain(config, writer, device_idxs=[0]):
     #                             shuffle=False)
     totol_step = 0
 
+    for x in data_loader:
+        print(x)
+        exit()
+
 
     model = Model(config, "train")
     model.prepare_for_train_RT(n_class=len(dataset_RT.filelists))
@@ -148,7 +152,7 @@ def pretrain(config, writer, device_idxs=[0]):
     model = DataParallel(model,  device_idxs)
     model.train()
 
-    init_embedding_matrix(model, joint_dataloader, config['embedding_dir'], config, device)
+    # init_embedding_matrix(model, joint_dataloader, config['embedding_dir'], config, device)
     exit()
 
     print (model)
