@@ -173,14 +173,18 @@ class ReconstructDataSet(BaseDataSet):
                 this_image_fp = os.path.join(folder, 'image', name+".png")
                 this_image_arr = cv2.imread(this_image_fp)
                 #extract texture on the fly
-
-                texture_ = self.GetTexture(this_image_arr, this_densepose_arr)
+                print (this_image_fp)
+                print (this_densepose_fp)
+                texture_ = self.GetTexture(this_image_arr, this_densepose_arr,)
                 texture_pil_ = Image.fromarray(texture_, mode='RGB')
                 texture_pil_.save('texture_fly.png')
                 texture_ndarray_ = np.asarray(texture_pil_)
                 # texture_ = F.to_tensor(texture_)
 
-                texture_pil = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
+                texture_fp = os.path.join(folder, "texture", name+".png")
+                print (texture_fp)
+                exit()
+                texture_pil = self.loader(texture_fp, mode="RGB")
                 texture_pil.save('texture_not_fly.png')
                 texture_ndarray = np.asarray(texture_pil)
                 print (np.unique(texture_))
