@@ -8,14 +8,15 @@ ct = 0
 def generate_list(root_path):
     files = glob.glob(osp(root_path, "image", "*.jpg"))
     with open(osp(root_path, "image_list.txt"), "w") as f:
+
         for file in files:
+
             name = os.path.basename(file).replace(".jpg", "")
 
             if os.path.exists(osp(root_path, "texture", name + ".png")) and \
                os.path.exists(osp(root_path, "segmentation", name + ".jpg")) and \
                os.path.exists(osp(root_path, "body", name + ".png")) and \
-               os.path.exists(osp(root_path, "densepose", name + ".jpg")):
-                # print ("S")
+               os.path.exists(osp(root_path, "densepose", name + ".png")):
                 f.write(name + "\n")
             else:
                 global ct

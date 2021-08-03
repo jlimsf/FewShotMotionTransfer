@@ -12,9 +12,14 @@ import utils
 import yaml
 import os, cv2, traceback, shutil
 import numpy as np
+import random
 
-# import wandb
-# wandb.init(sync_tensorboard=True)
+torch.manual_seed(1)
+random.seed(2)
+np.random.seed(3)
+
+import wandb
+wandb.init(sync_tensorboard=True)
 
 def validation(model, validation_loader, device, epoch, subject_name, image_size, writer):
 
@@ -82,48 +87,55 @@ def pretrain(config, writer, device_idxs=[0]):
     print (config)
     device = torch.device("cuda:" + str(device_idxs[0]))
 
-    # dist.init_process_group(backend='nccl', init_method="tcp://localhost:29501", rank=rank, world_size=4)
-
     dataset = ReconstructDataSet(config['dataroot'], config)
-    dataset_RT = RT_ReconstructDataSet('/vid_data/FSMR_data/rebecca_taylor_top/train', config)
+    dataset_RT = RT_ReconstructDataSet('/vid_data/FSMR_data/rebecca_taylor_top_v2/train', config, min_sequence_len=5)
+
+    joint_dataset = torch.utils.data.ConcatDataset([dataset, dataset_RT])
+    print (joint_dataset)
+    print (len(joint_dataset), len(dataset), len(dataset_RT))
+
+    joined_filelist = dataset.filelists + dataset_RT.filelists
+
 
     sampler = utils.TrainSampler(config['batchsize'], dataset.filelists)
     sampler_RT = utils.TrainSampler(config['batchsize'], dataset_RT.filelists)
+    joint_sampler = utils.TrainSampler(config['batchsize'], joined_filelist)
 
-    data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=0, pin_memory=True)
+    data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=16, pin_memory=True)
     data_loader_RT = DataLoader(dataset_RT, batch_sampler=sampler_RT, num_workers=0, pin_memory=True)
+    joint_dataloader = DataLoader(joint_dataset, batch_sampler=joint_sampler, num_workers=8, pin_memory=True)
 
     #/data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/'
-    validation_dataset = ValidationTransferDataSet(root='/vid_data/FSMR_data/top_data/train/91-2Jb8DkfS/',
-                                        src_root='/vid_data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/',
-                                        config=config)
-
-    validation_loader = DataLoader(validation_dataset,
-                                1, num_workers=4,
-                                pin_memory=True,
-                                shuffle=False)
+    # validation_dataset = ValidationTransferDataSet(root='/vid_data/FSMR_data/top_data/train/91-2Jb8DkfS/',
+    #                                     src_root='/vid_data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/',
+    #                                     config=config)
+    #
+    # validation_loader = DataLoader(validation_dataset,
+    #                             1, num_workers=4,
+    #                             pin_memory=True,
+    #                             shuffle=False)
     totol_step = 0
 
 
     model = Model(config, "train")
-    model.prepare_for_train(n_class=len(dataset.filelists))
+    model.prepare_for_train_RT(n_class=len(dataset_RT.filelists))
     model = model.to(device)
-    # model = DataParallel(model,  device_idxs)
+    model = DataParallel(model,  device_idxs)
     model.train()
 
+    print (model)
 
     for epoch in trange(config['epochs']):
 
-        iterator = tqdm(enumerate(data_loader), total=len(data_loader))
-        for i, data in iterator:
+        for i, data in tqdm(enumerate(joint_dataloader)):
 
             data_gpu = {key: item.to(device) for key, item in data.items()}
-            print (torch.unique(data_gpu['mask']))
-            exit()
+            mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV_RT")
+
             if i % 200 <= 100:
-                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV")
+                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV_RT")
             else:
-                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_texture")
+                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_texture_RT")
 
             for key, item in losses.items():
                 losses[key] = item.mean()
@@ -131,12 +143,10 @@ def pretrain(config, writer, device_idxs=[0]):
 
             if i % 200 <= 100:
                 model.module.optimizer_G.zero_grad()
-                model.module.optimizer_texture_stack.zero_grad()
-                # optimizer_G.zero_grad()
-                # optimizer_TS.zero_grad()
+                # model.module.optimizer_texture_stack.zero_grad()
+
             else:
                 model.module.optimizer_T.zero_grad()
-                # optimizer_T.zero_grad()
 
             loss_G = losses.get("loss_G_L1", 0) + losses.get("loss_G_GAN", 0) + losses.get("loss_G_GAN_Feat", 0) + losses.get("loss_G_mask", 0) \
                      + losses.get("loss_texture", 0) * config['l_texture'] + losses.get("loss_coordinate", 0) * config['l_coordinate'] \
@@ -146,13 +156,10 @@ def pretrain(config, writer, device_idxs=[0]):
 
             if i % 200 <= 100:
                 model.module.optimizer_G.step()
-                model.module.optimizer_texture_stack.step()
-                # optimizer_G.step()
-                # optimizer_TS.step()
+                # model.module.optimizer_texture_stack.step()
 
             else:
                 model.module.optimizer_T.step()
-                # optimizer_T.step()
 
 
             writer.add_scalar("Loss/G", loss_G, totol_step)
@@ -185,8 +192,8 @@ def pretrain(config, writer, device_idxs=[0]):
 
 
 
-        model.module.save('latest_train')
-        model.module.save(str(epoch+1)+"_train")
+        model.module.save('latest_train_finetune_rebecca_taylor')
+        model.module.save(str(epoch+1)+"_train_finetune_rebecca_taylor")
 
         model.module.scheduler_G.step()
         print ("Validation")

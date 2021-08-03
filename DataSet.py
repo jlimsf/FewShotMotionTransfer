@@ -7,6 +7,7 @@ from torchvision.transforms import functional as F
 import numpy as np
 import glob
 import random
+import imageio
 
 class BaseDataSet(dataset.Dataset):
 
@@ -15,9 +16,28 @@ class BaseDataSet(dataset.Dataset):
         self.config = config
 
     def loader(self, path, mode):
-        with open(path, 'rb') as f:
-            img = Image.open(f)
-            return img.convert(mode)
+    # with open(path, 'rb') as f:
+        img = Image.open(path)
+        return img.convert(mode)
+
+    def GetTexture(self, im, IUV):
+        U = IUV[:, :, 1]
+        V = IUV[:, :, 2]
+        Texture = np.zeros((24, 128, 128, 3), dtype=np.uint8)
+        for PartInd in range(1, 25):
+            tex = Texture[PartInd - 1, :, :, :].squeeze()
+            x, y = np.where(IUV[:, :, 0] == PartInd)
+            u = U[x, y] // 2
+            v = V[x, y] // 2
+            tex[u, v] = im[x, y]
+            Texture[PartInd - 1] = tex
+        TextureIm = np.zeros((128 * 4, 128 * 6, 3), dtype=np.uint8)
+        for i in range(len(Texture)):
+            x = i // 6 * 128
+            y = i % 6 * 128
+            TextureIm[x:x + 128, y:y + 128] = Texture[i]
+        return TextureIm
+
 
     def label_to_tensor(self, label):
         if isinstance(label, np.ndarray):
@@ -97,15 +117,23 @@ class ReconstructDataSet(BaseDataSet):
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
             IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
 
-            transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV], [False, False, True, True, True, True, True])
+            # transform_iuv = self._transform([IUV], [True] )[0]
+
+            # print (np.asarray(IUV).shape)
+            transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
+                                                    [False, False, True, True, True, True, True])
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
+
+            # print (np.asarray(data["IUV"]).shape)
+            # print (self.stage)
 
             data["mask"] = data["IUV"][-1,:,:]
             data["foreground"] = (data["foreground"] > 0).to(torch.long)
             data["U"] = data["IUV"][1,:,:].unsqueeze(0).to(torch.float32)/self.config["URange"]
             data["V"] = data["IUV"][0,:,:].unsqueeze(0).to(torch.float32)/self.config["VRange"]
             data.pop("IUV")
+
 
         if self.stage == 'pretrain_texture':
             data = {}
@@ -135,6 +163,7 @@ class ReconstructDataSet(BaseDataSet):
         if self.stage == 'train':
             indexes = random.sample(list(range(0, len(self.filelists[label]))), 1)
             for i in indexes:
+
                 name = self.filelists[label][i][0]
                 texture = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
                 texture_tensor = F.to_tensor(texture)
@@ -251,7 +280,7 @@ class TransferDataSet(BaseDataSet):
 
 class RT_ReconstructDataSet(BaseDataSet):
 
-    def __init__(self, root, config, list_name="image_list.txt"):
+    def __init__(self, root, config, min_sequence_len, list_name="image_list.txt"):
         super(RT_ReconstructDataSet, self).__init__(config)
         self.root = root
 
@@ -264,7 +293,7 @@ class RT_ReconstructDataSet(BaseDataSet):
                 subject_dir = os.path.join(video_dir, subject)
                 with open(os.path.join(subject_dir, list_name)) as f:
                     filelist = f.readlines()
-                    if len(filelist) == 0:
+                    if len(filelist) < min_sequence_len:
                         continue
                     else:
                         self.folders.append(subject_dir)
@@ -297,7 +326,7 @@ class RT_ReconstructDataSet(BaseDataSet):
         name = self.filelist[index][0]
         folder = self.folders[label]
 
-        print (label)
+
         if self.stage == 'pretrain' or self.stage == 'train':
 
             image = self.loader(os.path.join(folder, "image", name+".jpg"), mode="RGB")
@@ -308,17 +337,34 @@ class RT_ReconstructDataSet(BaseDataSet):
             class_image = self.loader(os.path.join(folder, "image", image_name+".jpg"), mode="RGB")
             class_foreground = self.loader(os.path.join(folder, "segmentation", image_name+".jpg"), mode="L")
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
-            IUV = self.loader(os.path.join(folder, "densepose", name+".jpg"), mode="RGB")
-
+            IUV = self.loader(os.path.join(folder, "densepose", name+".png") , mode="RGB")
+            # IUV = imageio.imread(iuv_p)
+            #
+            # print (np.asarray(IUV).shape)
+            # print (np.unique(np.asarray(IUV)))
+            # print (np.unique(np.asarray(IUV)[:, :, 0]))
+            # print (np.unique(np.asarray(IUV)[:, :, 1]))
+            # print (np.unique(np.asarray(IUV)[:, :, 2]))
+            # transform_iuv = self._transform([IUV], [True] )[0]
+            # print (transform_iuv.shape)
+            # print (np.unique(transform_iuv[0, :, :]))
+            # print (np.unique(transform_iuv[1, :, :]))
+            # print (np.unique(transform_iuv[2, :, :]))
+            #
+            # exit()
             transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV], [False, False, True, True, True, True, True])
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
 
             data["mask"] = data["IUV"][-1,:,:]
+            # print (np.unique(data['mask'], return_counts=True), ' unique mask')
+            # print (data["IUV"][-1, :, :].shape)
             data["foreground"] = (data["foreground"] > 0).to(torch.long)
             data["U"] = data["IUV"][1,:,:].unsqueeze(0).to(torch.float32)/self.config["URange"]
             data["V"] = data["IUV"][0,:,:].unsqueeze(0).to(torch.float32)/self.config["VRange"]
             data.pop("IUV")
+            # print (np.unique(data['mask']), ' unique mask')
+            # exit()
 
         if self.stage == 'pretrain_texture':
             data = {}
@@ -347,6 +393,7 @@ class RT_ReconstructDataSet(BaseDataSet):
 
         if self.stage == 'train':
             indexes = random.sample(list(range(0, len(self.filelists[label]))), 1)
+            
             for i in indexes:
                 name = self.filelists[label][i][0]
                 texture = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")

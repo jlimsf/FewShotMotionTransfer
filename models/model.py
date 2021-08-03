@@ -82,9 +82,21 @@ class Model(nn.Module):
         texture_stack = torch.zeros((n_class, 72, self.config['texture_size'], self.config['texture_size']))
         self.texture_stack = nn.Parameter(texture_stack)
         self.texture_list = [False for i in range(n_class)]
-        # self.optimizer_texture_stack = torch.optim.Adam([self.texture_stack], lr=self.lr_T, betas=(0.5, 0.999))
-        self.optimizer_texture_stack = torch.optim.SGD([self.texture_stack], lr=self.lr_T *10) #,  momentum=0.9, nesterov =True)
 
+        self.optimizer_texture_stack = torch.optim.Adam([self.texture_stack], lr=self.lr_T, betas=(0.5, 0.999))
+        # self.optimizer_texture_stack = torch.optim.SGD([self.texture_stack], lr=self.lr_T *10) #,  momentum=0.9, nesterov =True)
+
+    def prepare_for_train_RT(self, n_class=10):
+        self.prepare_for_pretrain()
+        self.prepare_for_texture()
+        self.restore_network()
+
+        texture_stack = torch.zeros((n_class, 72, self.config['texture_size'], self.config['texture_size']))
+        # self.texture_stack = nn.Parameter(texture_stack)
+        # self.texture_list = [False for i in range(n_class)]
+
+        # self.optimizer_texture_stack = torch.optim.Adam([self.texture_stack], lr=self.lr_T, betas=(0.5, 0.999))
+        # self.optimizer_texture_stack = torch.optim.SGD([self.texture_stack], lr=self.lr_T *10) #,  momentum=0.9, nesterov =True)
 
     def prepare_for_finetune(self, data, background):
         self.prepare_for_train()
@@ -106,6 +118,7 @@ class Model(nn.Module):
         size = label_map.size()
         oneHot_size = (size[0], nc+1, size[2], size[3])
         input_label = torch.zeros(torch.Size(oneHot_size), device=label_map.device, dtype=torch.float32)
+
         input_label = input_label.scatter_(1, label_map.long(), 1.0)
         prob = torch.rand(nc, dtype=torch.float32, device=label_map.device) < dropout
         prob_all = random.random()<dropout_all
@@ -190,6 +203,7 @@ class Model(nn.Module):
 
         if mode == 'UV':
             label = int(data['class'][0])
+
             if self.texture_list[label]:
                 texture = self.texture_stack[label].unsqueeze(0)
             else:
@@ -202,6 +216,9 @@ class Model(nn.Module):
                     self.texture_stack.data[label] = self.texture_generator(part_texture)[0].data
                 texture = self.texture_stack[label].unsqueeze(0)
                 self.texture_list[label] = True
+
+                
+
         else:
             part_texture = data["texture"][:self.config['num_texture']]
             b, n, c, h, w = part_texture.size()
@@ -210,13 +227,55 @@ class Model(nn.Module):
             part_texture = part_texture.view(1, b * n, c, self.config['texture_size'], self.config['texture_size'])
             texture = self.texture_generator(part_texture)
 
+
         texture = texture.repeat(self.config['batchsize'], 1, 1, 1)
         image = data["image"] * data["foreground"].expand_as(data["image"]).to(torch.float32)
         prob_mask, fake_image = self.get_image(mask, coordinate, texture)
-
         losses = self.create_loss_train(mask, data["foreground"], fake_image, image)
         losses['loss_coordinate'] = self.coordinate_constraint(coordinate, data)
         losses['loss_mask'] = self.mask_constraint(mask, data)
+
+        if mode != 'UV':
+            losses['loss_texture'] = self.texture_constraint(texture[0].unsqueeze(0), part_texture)
+
+        return prob_mask.detach(), fake_image.detach(), texture.detach(), input, coordinate.detach(), losses
+
+    def train_network_RT(self, data, mode='UV'):
+        input, class_input = self._get_input_pose(data)
+
+        pose_code = self.generator.enc_content(input)
+        label_codes, label_features = self.generator.enc_class_model(data["class_image"]*data["class_foreground"].expand(-1,3,-1,-1))
+        weight_codes, weight_features = self.generator.weight_model(input)
+        class_weight_codes, class_weight_features = self.generator.weight_model(class_input)
+        label_code, label_feature = self.generator.att(weight_codes, weight_features, class_weight_codes, class_weight_features, label_codes, label_features)
+        mask, coordinate = self.generator.dec(pose_code, label_code, label_feature)
+
+        if mode == 'UV':
+            label = int(data['class'][0])
+
+            part_texture = data["texture"][:self.config['num_texture']]
+            b, n, c, h, w = part_texture.size()
+            part_texture = part_texture.view(b * n, c, h, w)
+            part_texture = torch.nn.functional.interpolate(part_texture, (self.config['texture_size'], self.config['texture_size']))
+            part_texture = part_texture.view(1, b*n, c, self.config['texture_size'], self.config['texture_size'])
+            texture = self.texture_generator(part_texture)
+
+        else:
+            part_texture = data["texture"][:self.config['num_texture']]
+            b, n, c, h, w = part_texture.size()
+            part_texture = part_texture.view(b * n, c, h, w)
+            part_texture = torch.nn.functional.interpolate(part_texture, (self.config['texture_size'], self.config['texture_size']))
+            part_texture = part_texture.view(1, b * n, c, self.config['texture_size'], self.config['texture_size'])
+            texture = self.texture_generator(part_texture)
+
+
+        texture = texture.repeat(self.config['batchsize'], 1, 1, 1)
+        image = data["image"] * data["foreground"].expand_as(data["image"]).to(torch.float32)
+        prob_mask, fake_image = self.get_image(mask, coordinate, texture)
+        losses = self.create_loss_train(mask, data["foreground"], fake_image, image)
+        losses['loss_coordinate'] = self.coordinate_constraint(coordinate, data)
+        losses['loss_mask'] = self.mask_constraint(mask, data)
+
         if mode != 'UV':
             losses['loss_texture'] = self.texture_constraint(texture[0].unsqueeze(0), part_texture)
 
@@ -297,11 +356,15 @@ class Model(nn.Module):
         return loss
 
     def coordinate_constraint(self, coordinate, data):
+
         target_U = data["U"].expand(-1,24,-1,-1)
         target_V = data["V"].expand(-1,24,-1,-1)
         target_coordinate = torch.cat((target_U, target_V), dim=1)
         coordinate_per_pixel_loss = self.L1Loss(coordinate, target_coordinate)
+
+
         label_mask = self._encode_label(data["mask"].unsqueeze(1), 24, 1.0, 1.0).repeat(1,2,1,1).to(torch.float32)
+
         coordinate_diff = (coordinate_per_pixel_loss*label_mask).sum(dim=1)
         coordinate_loss = coordinate_diff.mean()
 
@@ -327,6 +390,10 @@ class Model(nn.Module):
             return self.inference(data)
         if phase == 'finetune':
             return self.finetune(data)
+        if phase == 'train_UV_RT':
+            return self.train_network_RT(data, "UV")
+        if phase == 'train_texture_RT':
+            return self.train_network_RT(data, "texture")
 
     def save(self, name):
         if hasattr(self, 'generator'):
@@ -346,7 +413,7 @@ class Model(nn.Module):
     def load_network(self, network, network_label, epoch_label, save_dir=''):
         save_filename = '%s_net_%s.pth' % (epoch_label, network_label)
         print("load "+save_filename)
-        print (save_filename)
+        print (epoch_label, network_label)
         if not save_dir:
             save_dir = self.save_dir
         save_path = os.path.join(save_dir, save_filename)
