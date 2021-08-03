@@ -163,10 +163,14 @@ class ReconstructDataSet(BaseDataSet):
     def GetTexture(self, im, IUV):
         U = IUV[:, :, 1]
         V = IUV[:, :, 2]
+
         Texture = np.zeros((24, 128, 128, 3), dtype=np.uint8)
         for PartInd in range(1, 25):
             tex = Texture[PartInd - 1, :, :, :].squeeze()
-            x, y = np.where(IUV[:, :, 0] == PartInd)
+            '''
+            This indexing below is different than the original author's code
+            '''
+            x, y = np.where(IUV[:, :, 2] == PartInd)
             u = U[x, y] // 2
             v = V[x, y] // 2
             tex[u, v] = im[x, y]
@@ -262,7 +266,7 @@ class ReconstructDataSet(BaseDataSet):
 
                 texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
                 print (texture_)
-                
+
                 # texture_ndarray = np.asarray(texture_)
                 imageio.imwrite('texture_fly.png', texture_)
 
