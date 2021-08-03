@@ -269,7 +269,7 @@ class ReconstructDataSet(BaseDataSet):
 
                 # texture_ndarray = np.asarray(texture_)
                 imageio.imwrite('texture_fly.png', texture_)
-
+                print ("Writing")
                 exit()
                 texture_tensor = F.to_tensor(texture_)
 
