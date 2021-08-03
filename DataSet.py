@@ -163,10 +163,6 @@ class ReconstructDataSet(BaseDataSet):
         U = IUV[:, :, 0]
         V = IUV[:, :, 1]
 
-        print (np.unique(U))
-        print (np.unique(V))
-        print (np.unique(IUV[:,:,2]))
-
         Texture = np.zeros((24, 128, 128, 3), dtype=np.uint8)
         for PartInd in range(1, 25):
             tex = Texture[PartInd - 1, :, :, :].squeeze()
@@ -266,10 +262,10 @@ class ReconstructDataSet(BaseDataSet):
 
                 [transforms_densepose, transforms_image] = \
                     self._transform([this_densepose_pil, this_image_pil],
-                    [True, False], crop_params = [i,j,h,w], return_tensor=False )
+                    [True, False], crop_params = [i,j,h,w], to_flip=flip_val, return_tensor=False )
 
-                # transforms_densepose.save('debug_uv_.png')
-                # transforms_image.save('debug_img_.png')
+                transforms_densepose.save('debug_uv_.png')
+                transforms_image.save('debug_img_.png')
 
                 texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
                 print (texture_)
