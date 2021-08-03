@@ -83,7 +83,7 @@ class ReconstructDataSet(BaseDataSet):
     def __len__(self):
         return len(self.filelist)
 
-    def _transform(self, images, tolabel, crop_params):
+    def _transform(self, images, tolabel, crop_params, return_tensor=True):
 
         i,j,h,w = crop_params
 
@@ -109,13 +109,16 @@ class ReconstructDataSet(BaseDataSet):
             for i in range(len(images)):
                 images[i] = F.hflip(images[i])
 
-        for i in range(len(images)):
-            if tolabel[i]:
-                images[i] = self.label_to_tensor(images[i])
-            else:
-                images[i] = F.to_tensor(images[i])
+        if return_tensor:
+            for i in range(len(images)):
+                if tolabel[i]:
+                    images[i] = self.label_to_tensor(images[i])
+                else:
+                    images[i] = F.to_tensor(images[i])
+            return images
+        else:
+            return images
 
-        return images
 
     def get_params(self, img, scale, ratio):
         """Get parameters for ``crop`` for a random sized crop.
@@ -205,7 +208,6 @@ class ReconstructDataSet(BaseDataSet):
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
 
-            exit()
             data["mask"] = data["IUV"][-1,:,:]
             data["foreground"] = (data["foreground"] > 0).to(torch.long)
             data["U"] = data["IUV"][1,:,:].unsqueeze(0).to(torch.float32)/self.config["URange"]
@@ -240,21 +242,28 @@ class ReconstructDataSet(BaseDataSet):
 
         if self.stage == 'train':
             indexes = random.sample(list(range(0, len(self.filelists[label]))), 1)
-            print (indexes)
 
-            exit()
             for i in indexes:
 
                 name = self.filelists[label][i][0]
 
                 this_densepose_fp = os.path.join(folder, "densepose", name+".png")
-                this_densepose_arr = cv2.imread(this_densepose_fp)
+                this_densepose_pil = self.loader(this_densepose_fp, mode='RGB')
 
                 this_image_fp = os.path.join(folder, 'image', name+".png")
-                this_image_arr = cv2.imread(this_image_fp)
+                this_image_pil = self.loader(this_image_fp, mode="RGB")
                 #extract texture on the fly
 
-                texture_ = self.GetTexture(this_image_arr, this_densepose_arr,)
+                [transforms_densepose, transforms_image] = \
+                    self._transform([this_densepose_pil, this_image_pil],
+                    [True, False], crop_params = [i,j,h,w], return_tensor=False )
+                print (transforms_densepose)
+                print (transforms_image)
+                
+                texture_ = self.GetTexture(np.asarray(transforms_densepose), np.asarray(transforms_image))
+                texture_ndarray = np.asarray(texture_)
+                cv2.imwrite('texture_fly_2.png', texture_ndarray)
+                exit()
                 texture_tensor = F.to_tensor(texture_)
 
                 # texture_fp = os.path.join(folder, "texture", name+".png")
