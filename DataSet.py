@@ -259,9 +259,14 @@ class ReconstructDataSet(BaseDataSet):
 
                 # transforms_densepose.save('debug_uv_.png')
                 # transforms_image.save('debug_img_.png')
-
+                print (transforms_densepose)
+                print (transforms_image)
+                print (np.asarray(transforms_image).shape)
+                cv2.imwrite('transforms_image.png', np.asarray(transforms_image))
+                cv2.imwrite('tranasforms_densepose.png', np.asarray(transforms_densepose))
                 texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
                 print (texture_)
+                exit()
                 # texture_ndarray = np.asarray(texture_)
                 cv2.imwrite('texture_fly.png', texture_)
 
