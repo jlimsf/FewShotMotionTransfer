@@ -1,6 +1,6 @@
-dataroot: /vid_data/FSMR_data/top_data/train/
-checkpoint_path: /vid_data/FSMR_data/checkpoint_fsmt/
-name: selfatt
+dataroot: /data/FSMR_data/top_data/train/
+checkpoint_path: /data/FSMR_data/checkpoint_fsmt/
+name: selfatt_25
 
 batchsize: 12
 epochs: 100
@@ -46,3 +46,5 @@ l_texture: 1.0
 l_coordinate: 20.0
 l_mask: 0.8
 l_vgg: 1.0
+
+embedding_dir: 'embeddings/embedding_ubc_and_RT/'

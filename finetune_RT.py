@@ -18,8 +18,8 @@ torch.manual_seed(1)
 random.seed(2)
 np.random.seed(3)
 
-import wandb
-wandb.init(sync_tensorboard=True)
+# import wandb
+# wandb.init(sync_tensorboard=True)
 
 def validation(model, validation_loader, device, epoch, subject_name, image_size, writer):
 
@@ -82,20 +82,45 @@ def validation(model, validation_loader, device, epoch, subject_name, image_size
     writer.add_video(tag="Validation/Video", vid_tensor = vid_to_tensor, fps=60)
 
 
+def init_embedding_matrix(model, dataloader, embedding_dir, config, device):
+
+    if not os.path.exists(embedding_dir):
+        os.makedirs(embedding_dir)
+
+    classes = []
+    print (len(dataloader))
+    iterator = tqdm(enumerate(dataloader), total=len(dataloader))
+    for i, data in iterator:
+        print (data['class'])
+
+        data_gpu = {key: item.to(device) for key, item in data.items()}
+        id_data = np.unique(data["class"].detach().cpu().numpy())
+
+        with torch.no_grad():
+            print (data['texture'].shape)
+            part_texture = data["texture"][:config['num_texture']]
+            print (part_texture.shape)
+            exit()
+            b, n, c, h, w = part_texture.size()
+            part_texture = part_texture.view(b * n, c, h, w)
+            part_texture = torch.nn.functional.interpolate(part_texture, (self.config['texture_size'], self.config['texture_size']))
+            part_texture = part_texture.view(1, b*n, c, self.config['texture_size'], self.config['texture_size'])
+            self.texture_stack.data[label] = self.texture_generator(part_texture)[0].data
+    exit()
+
+    pass
+
 def pretrain(config, writer, device_idxs=[0]):
 
     print (config)
     device = torch.device("cuda:" + str(device_idxs[0]))
 
     dataset = ReconstructDataSet(config['dataroot'], config)
-    dataset_RT = RT_ReconstructDataSet('/vid_data/FSMR_data/rebecca_taylor_top_v2/train', config, min_sequence_len=5)
+    dataset_RT = RT_ReconstructDataSet('/data/FSMR_data/rebecca_taylor_top_v2/train',
+                config, min_sequence_len=5, len_ubc_dataset=len(dataset.filelists))
 
     joint_dataset = torch.utils.data.ConcatDataset([dataset, dataset_RT])
-    print (joint_dataset)
-    print (len(joint_dataset), len(dataset), len(dataset_RT))
-
     joined_filelist = dataset.filelists + dataset_RT.filelists
-
 
     sampler = utils.TrainSampler(config['batchsize'], dataset.filelists)
     sampler_RT = utils.TrainSampler(config['batchsize'], dataset_RT.filelists)
@@ -103,7 +128,7 @@ def pretrain(config, writer, device_idxs=[0]):
 
     data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=16, pin_memory=True)
     data_loader_RT = DataLoader(dataset_RT, batch_sampler=sampler_RT, num_workers=0, pin_memory=True)
-    joint_dataloader = DataLoader(joint_dataset, batch_sampler=joint_sampler, num_workers=8, pin_memory=True)
+    joint_dataloader = DataLoader(joint_dataset, batch_sampler=joint_sampler, num_workers=0, pin_memory=True)
 
     #/data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/'
     # validation_dataset = ValidationTransferDataSet(root='/vid_data/FSMR_data/top_data/train/91-2Jb8DkfS/',
@@ -122,6 +147,9 @@ def pretrain(config, writer, device_idxs=[0]):
     model = model.to(device)
     model = DataParallel(model,  device_idxs)
     model.train()
+
+    init_embedding_matrix(model, joint_dataloader, config['embedding_dir'], config, device)
+    exit()
 
     print (model)
 

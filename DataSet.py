@@ -280,7 +280,7 @@ class TransferDataSet(BaseDataSet):
 
 class RT_ReconstructDataSet(BaseDataSet):
 
-    def __init__(self, root, config, min_sequence_len, list_name="image_list.txt"):
+    def __init__(self, root, config, min_sequence_len, len_ubc_dataset, list_name="image_list.txt"):
         super(RT_ReconstructDataSet, self).__init__(config)
         self.root = root
 
@@ -300,6 +300,7 @@ class RT_ReconstructDataSet(BaseDataSet):
 
         self.filelist = []
         self.filelists = []
+        self.len_ubc_dataset = len_ubc_dataset
 
 
         for i, folder in enumerate(self.folders):
@@ -308,7 +309,7 @@ class RT_ReconstructDataSet(BaseDataSet):
                 filelist = f.readlines()
 
                 # filelist.sort(key=int)
-                filelist = [(x.strip(), i) for x in filelist]
+                filelist = [(x.strip(), i+self.len_ubc_dataset) for x in filelist]
 
 
                 self.filelist += filelist
@@ -324,6 +325,7 @@ class RT_ReconstructDataSet(BaseDataSet):
 
         label = self.filelist[index][1]
         name = self.filelist[index][0]
+        label -= self.len_ubc_dataset
         folder = self.folders[label]
 
 
@@ -393,7 +395,7 @@ class RT_ReconstructDataSet(BaseDataSet):
 
         if self.stage == 'train':
             indexes = random.sample(list(range(0, len(self.filelists[label]))), 1)
-            
+
             for i in indexes:
                 name = self.filelists[label][i][0]
                 texture = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
