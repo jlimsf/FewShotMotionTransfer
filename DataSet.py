@@ -208,7 +208,8 @@ class ReconstructDataSet(BaseDataSet):
                 flip_val = random.randint(0, 1)
             else:
                 flip_val = 0
-
+            flip_val = 0
+            
             transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
                                                     [False, False, True, True, True, True, True], crop_params = [i,j,h,w], to_flip = flip_val)
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
