@@ -95,8 +95,7 @@ class Model(nn.Module):
             part_texture = torch.nn.functional.interpolate(part_texture, (self.config['texture_size'], self.config['texture_size']))
             part_texture = part_texture.view(1, b*n, c, self.config['texture_size'], self.config['texture_size'])
             texture = self.texture_generator.get_feat(part_texture)
-            print (texture.shape)
-            exit()
+
         self.texture_stack = nn.Parameter(texture)
         self.texture_feature = []
         self.background = nn.Parameter(background)
