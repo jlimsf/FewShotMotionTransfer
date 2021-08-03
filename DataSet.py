@@ -259,19 +259,12 @@ class ReconstructDataSet(BaseDataSet):
 
                 # transforms_densepose.save('debug_uv_.png')
                 # transforms_image.save('debug_img_.png')
-                print (transforms_densepose)
-                print (transforms_image)
-                print (np.asarray(transforms_image).dtype)
-                cv2.imwrite('cv2_transforms_image.png', np.asarray(transforms_image))
-                cv2.imwrite('cv2_tranasforms_densepose.png', np.asarray(transforms_densepose))
-                imageio.imwrite('im_io_transforms_image.png', np.asarray(transforms_image))
-                imageio.imwrite('im_io_tranasforms_densepose.png', np.asarray(transforms_densepose))
 
                 texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
                 print (texture_)
-                exit()
+                
                 # texture_ndarray = np.asarray(texture_)
-                cv2.imwrite('texture_fly.png', texture_)
+                imageio.imwrite('texture_fly.png', texture_)
 
                 exit()
                 texture_tensor = F.to_tensor(texture_)
