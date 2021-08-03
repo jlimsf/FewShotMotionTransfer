@@ -20,9 +20,6 @@ class BaseDataSet(dataset.Dataset):
         img = Image.open(path)
         return img.convert(mode)
 
-
-
-
     def label_to_tensor(self, label):
         if isinstance(label, np.ndarray):
             return torch.from_numpy(label)
@@ -174,11 +171,11 @@ class ReconstructDataSet(BaseDataSet):
 
                 this_image_fp = os.path.join(folder, 'image', name+".png")
                 this_image_arr = cv2.imread(this_image_fp)
-                cv2.imwrite('debug_orig_im.png', this_image_arr)
                 #extract texture on the fly
                 print (this_image_fp)
                 print (this_densepose_fp)
                 texture_ = self.GetTexture(this_image_arr, this_densepose_arr,)
+                cv2.imwrite('texture_fly_2.png', texture_)
                 texture_pil_ = Image.fromarray(texture_, mode='RGB')
                 texture_pil_.save('texture_fly.png')
                 texture_ndarray_ = np.asarray(texture_pil_)
