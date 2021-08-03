@@ -98,7 +98,6 @@ class ReconstructDataSet(BaseDataSet):
                 new_im = F.resized_crop(this_im, i, j, h, w, self.size, Image.BILINEAR)
                 resized = resize(new_im)
                 images[i] = resized
-                resized.save('{}.png'.format(i))
 
         if 'hflip' in self.config and self.config['hflip']:
             flip = random.randint(0, 1)
