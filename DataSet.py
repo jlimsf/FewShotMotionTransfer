@@ -167,6 +167,10 @@ class ReconstructDataSet(BaseDataSet):
         U = IUV[:, :, 0]
         V = IUV[:, :, 1]
 
+        print (np.unique(U))
+        print (np.unique(V))
+        print (np.unique(IUV[:,:,2]))
+
         Texture = np.zeros((24, 128, 128, 3), dtype=np.uint8)
         for PartInd in range(1, 25):
             tex = Texture[PartInd - 1, :, :, :].squeeze()
@@ -271,7 +275,7 @@ class ReconstructDataSet(BaseDataSet):
                 print (texture_)
 
                 # texture_ndarray = np.asarray(texture_)
-                imageio.imwrite('texture_fly.png', texture_)
+                imageio.imwrite('texture_fly_2.png', texture_)
                 print ("Writing")
                 exit()
                 texture_tensor = F.to_tensor(texture_)
