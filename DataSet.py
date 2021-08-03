@@ -161,8 +161,11 @@ class ReconstructDataSet(BaseDataSet):
         return i, j, h, w
 
     def GetTexture(self, im, IUV):
-        U = IUV[:, :, 1]
-        V = IUV[:, :, 2]
+        '''
+        This indexing below is different than the original author's code
+        '''
+        U = IUV[:, :, 0]
+        V = IUV[:, :, 1]
 
         Texture = np.zeros((24, 128, 128, 3), dtype=np.uint8)
         for PartInd in range(1, 25):
