@@ -167,11 +167,14 @@ class ReconstructDataSet(BaseDataSet):
             for i in indexes:
 
                 name = self.filelists[label][i][0]
+                print (name)
+                print (folder)
                 this_densepose_fp = os.path.join(folder, "densepose", name+".png")
                 this_densepose_arr = cv2.imread(this_densepose_fp)
 
                 this_image_fp = os.path.join(folder, 'image', name+".png")
                 this_image_arr = cv2.imread(this_image_fp)
+                cv2.imwrite('debug_orig_im.png', this_image_arr)
                 #extract texture on the fly
                 print (this_image_fp)
                 print (this_densepose_fp)
