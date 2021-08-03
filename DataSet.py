@@ -263,8 +263,8 @@ class ReconstructDataSet(BaseDataSet):
                 texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
                 print (texture_)
                 # texture_ndarray = np.asarray(texture_)
-                cv2.imwrite('texture_fly_2.png', texture_)
-                
+                cv2.imwrite('texture_fly.png', texture_)
+
                 exit()
                 texture_tensor = F.to_tensor(texture_)
 
