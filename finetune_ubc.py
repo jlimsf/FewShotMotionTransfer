@@ -10,6 +10,11 @@ import torch
 import os
 import utils
 import yaml
+import fairscale
+from fairscale.optim.oss import OSS
+from fairscale.nn.data_parallel import ShardedDataParallel as ShardedDDP
+import torch.distributed as dist
+import torch.multiprocessing as mp
 import os, cv2, traceback, shutil
 import numpy as np
 
@@ -80,47 +85,52 @@ def validation(model, validation_loader, device, epoch, subject_name, image_size
 def pretrain(config, writer, device_idxs=[0]):
 
     print (config)
+
     device = torch.device("cuda:" + str(device_idxs[0]))
 
-    # dist.init_process_group(backend='nccl', init_method="tcp://localhost:29501", rank=rank, world_size=4)
-
     dataset = ReconstructDataSet(config['dataroot'], config)
-    dataset_RT = RT_ReconstructDataSet('/vid_data/FSMR_data/rebecca_taylor_top/train', config)
+    dataset_RT = RT_ReconstructDataSet('/data/FSMR_data/rebecca_taylor_top/train', config)
 
-    sampler = utils.TrainSampler(config['batchsize'], dataset.filelists)
+    # sampler = utils.TrainSampler(config['batchsize'], dataset.filelists)
     sampler_RT = utils.TrainSampler(config['batchsize'], dataset_RT.filelists)
 
-    data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=0, pin_memory=True)
+    # data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=16, pin_memory=True)
     data_loader_RT = DataLoader(dataset_RT, batch_sampler=sampler_RT, num_workers=0, pin_memory=True)
 
     #/data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/'
-    validation_dataset = ValidationTransferDataSet(root='/vid_data/FSMR_data/top_data/train/91-2Jb8DkfS/',
-                                        src_root='/vid_data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/',
-                                        config=config)
+    # validation_dataset = ValidationTransferDataSet(root='/data/FSMR_data/top_data/train/91-2Jb8DkfS/',
+                                        # src_root='/data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/',
+                                        # config=config)
 
-    validation_loader = DataLoader(validation_dataset,
-                                1, num_workers=4,
-                                pin_memory=True,
-                                shuffle=False)
+    # validation_loader = DataLoader(validation_dataset,
+    #                             1, num_workers=4,
+    #                             pin_memory=True,
+    #                             shuffle=False)
     totol_step = 0
 
-
     model = Model(config, "train")
+    print (len(dataset.filelists))
+    print (len(dataset_RT.filelists))
     model.prepare_for_train(n_class=len(dataset.filelists))
+    # model.prepare_for_finetune
     model = model.to(device)
-    # model = DataParallel(model,  device_idxs)
+    model = DataParallel(model,  device_idxs)
     model.train()
+    print (model)
 
+    exit()
+    data_loader = data_loader_RT
 
     for epoch in trange(config['epochs']):
-
 
         iterator = tqdm(enumerate(data_loader), total=len(data_loader))
         for i, data in iterator:
 
             data_gpu = {key: item.to(device) for key, item in data.items()}
-            print (torch.unique(data_gpu['mask']))
+            print (data_gpu)
+            mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV")
             exit()
+
             if i % 200 <= 100:
                 mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV")
             else:
@@ -180,7 +190,6 @@ def pretrain(config, writer, device_idxs=[0]):
                 writer.add_images("Input/body", body_sum, totol_step, dataformats="NCHW")
 
             totol_step+=1
-
 
         #validate
 

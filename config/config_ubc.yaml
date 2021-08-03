@@ -1,17 +1,15 @@
 dataroot: /data/FSMR_data/top_data/train/
 checkpoint_path: /data/FSMR_data/checkpoint_fsmt/
-name: selfatt_25
+name: selfatt
 
 batchsize: 8
 epochs: 15
-
-
 lr: 0.0002
 lr_T: 0.0002
 lr_D: 0.0002
 lr_milestone:
+  - 5
   - 10
-  - 20
 
 phase: train
 pretrain_name: latest

@@ -107,6 +107,7 @@ class Model(nn.Module):
             part_texture = torch.nn.functional.interpolate(part_texture, (self.config['texture_size'], self.config['texture_size']))
             part_texture = part_texture.view(1, b*n, c, self.config['texture_size'], self.config['texture_size'])
             texture = self.texture_generator.get_feat(part_texture)
+
         self.texture_stack = nn.Parameter(texture)
         self.texture_feature = []
         self.background = nn.Parameter(background)
@@ -201,6 +202,8 @@ class Model(nn.Module):
         label_code, label_feature = self.generator.att(weight_codes, weight_features, class_weight_codes, class_weight_features, label_codes, label_features)
         mask, coordinate = self.generator.dec(pose_code, label_code, label_feature)
 
+        print (self.texture_stack)
+        exit()
         if mode == 'UV':
             label = int(data['class'][0])
 
