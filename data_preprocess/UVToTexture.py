@@ -52,7 +52,7 @@ for root in tqdm(folders):
 
     for i, image_path in enumerate(image_path_list):
 
-        IUV_path = osp(root, "densepose", image_path.split('.')[0] + ".jpg")
+        IUV_path = osp(root, "densepose", image_path.split('.')[0] + ".png")
 
         if not os.path.exists(IUV_path):
             print (IUV_path, 'does not exist')

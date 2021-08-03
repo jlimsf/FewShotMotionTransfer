@@ -1,20 +1,18 @@
-dataroot: /data/FSMR_data/top_data/train/
-checkpoint_path: /data/FSMR_data/checkpoint_fsmt/
-name: selfatt_25
+dataroot: /vid_data/FSMR_data/top_data/train/
+checkpoint_path: /vid_data/FSMR_data/checkpoint_fsmt/
+name: selfatt
 
-batchsize: 8
-epochs: 15
-
-
+batchsize: 12
+epochs: 100
 lr: 0.0002
 lr_T: 0.0002
 lr_D: 0.0002
 lr_milestone:
-  - 10
-  - 20
+  - 80
+  - 90
 
 phase: train
-pretrain_name: latest
+pretrain_name: 25_train
 
 resize: 256
 texture_size: 128
@@ -22,7 +20,7 @@ hflip: true
 URange: 256
 VRange: 256
 
-display_freq: 500
+display_freq: 250
 
 body_nc: 26
 

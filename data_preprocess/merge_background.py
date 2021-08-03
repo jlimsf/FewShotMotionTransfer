@@ -42,7 +42,7 @@ for folder in tqdm(folders):
             print (e)
             continue
 
-    
+
     b = backgrounds[0]
     m = masks[0]
     n = len(masks) // 5
