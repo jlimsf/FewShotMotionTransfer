@@ -37,7 +37,7 @@ def pretrain(config, writer, device_idxs=[0]):
 
             loss_mask = loss_mask.mean()
             loss_coordinate = loss_coordinate.mean()
-
+            print (loss_mask, loss_coordinate)
             model.module.optimizer_G.zero_grad()
             (loss_mask+loss_coordinate).backward()
             model.module.optimizer_G.step()

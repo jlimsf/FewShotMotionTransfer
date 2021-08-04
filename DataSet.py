@@ -202,7 +202,7 @@ class ReconstructDataSet(BaseDataSet):
             IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
 
 
-            i, j, h, w = self.get_params(image, scale=(0.35 , 1.0), ratio=(3. / 4., 4. / 3.))
+            i, j, h, w = self.get_params(image, scale=(0.2 , 1.0), ratio=(3. / 4., 4. / 3.))
             if 'hflip' in self.config and self.config['hflip']:
                 flip_val = random.randint(0, 1)
             else:
@@ -224,8 +224,29 @@ class ReconstructDataSet(BaseDataSet):
         if self.stage == 'pretrain_texture':
             data = {}
             textures = []
-            texture = self.loader(os.path.join(folder, "texture", name + ".png"), mode="RGB")
-            texture_tensor = F.to_tensor(texture)
+            # texture = self.loader(os.path.join(folder, "texture", name + ".png"), mode="RGB")
+            # texture_tensor = F.to_tensor(texture)
+
+            this_densepose_fp = os.path.join(folder, "densepose", name+".png")
+            this_densepose_pil = self.loader(this_densepose_fp, mode='RGB')
+
+            this_image_fp = os.path.join(folder, 'image', name+".png")
+            this_image_pil = self.loader(this_image_fp, mode="RGB")
+            #extract texture on the fly
+
+            i, j, h, w = self.get_params(this_image_pil, scale=(0.2 , 1.0), ratio=(3. / 4., 4. / 3.))
+            [transforms_densepose, transforms_image] = \
+                self._transform([this_densepose_pil, this_image_pil],
+                [True, False], crop_params = [i,j,h,w], to_flip=0, return_tensor=False )
+
+            print (i,j,h,w)
+            print (transforms_image)
+            transforms_image.save('debug_box.png')
+            exit()
+            texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
+            texture_tensor = F.to_tensor(texture_)
+
+
             texture_size = texture_tensor.size()[1] // 4
             texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
             texture_tensor = texture_tensor.permute(1, 3, 0, 2, 4)
@@ -233,11 +254,26 @@ class ReconstructDataSet(BaseDataSet):
             texture_tensor = texture_tensor.contiguous().view(24 * 3, texture_size, texture_size)
             textures.append(texture_tensor)
 
+            data["image"] = self._transform([ this_image_pil], [ False], crop_params = [i,j,h,w], to_flip=0, return_tensor=True )[0]
+
             indexes = random.sample(list(range(0, len(self.filelists[label]))), self.config["num_texture"]-1)
             for i in indexes:
                 name = self.filelists[label][i][0]
-                texture = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
-                texture_tensor = F.to_tensor(texture)
+                # texture = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
+                this_densepose_fp = os.path.join(folder, "densepose", name+".png")
+                this_densepose_pil = self.loader(this_densepose_fp, mode='RGB')
+
+                this_image_fp = os.path.join(folder, 'image', name+".png")
+                this_image_pil = self.loader(this_image_fp, mode="RGB")
+                #extract texture on the fly
+
+                [transforms_densepose, transforms_image] = \
+                    self._transform([this_densepose_pil, this_image_pil],
+                    [True, False], crop_params = [i,j,h,w], to_flip=0, return_tensor=False )
+
+                texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
+                texture_tensor = F.to_tensor(texture_)
+                # texture_tensor = F.to_tensor(texture)
                 texture_size = texture_tensor.size()[1]//4
                 texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
                 texture_tensor = texture_tensor.permute(1, 3, 0, 2, 4)
@@ -277,6 +313,15 @@ class ReconstructDataSet(BaseDataSet):
             data["texture"] = texture_tensor.unsqueeze(0)
 
         data["class"] = label
+
+        # for k,v in data.items():
+        #     # v = torch.tensor([1, 2, np.nan])
+        #     if k == 'class': continue
+        #     if torch.isnan(v).any():
+        #         print ("Found nan in {} | {} | {} | {} |".format(folder, index, label, [i,j,h,w]))
+        #
+        #         exit()
+
         return data
 
 

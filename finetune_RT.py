@@ -169,24 +169,18 @@ def pretrain(config, writer, device_idxs=[0]):
 
     print (model)
 
+    exit()
+
     for epoch in trange(config['epochs']):
 
         iterator = tqdm(enumerate(joint_dataloader), total=len(joint_dataloader))
         for i, data in iterator:
 
             data_gpu = {key: item.to(device) for key, item in data.items()}
-            for k,v in data_gpu.items():
-                print (k)
-                if k in ['image', 'class_image']:
-                    # output = v.cpu().numpy()
-                    # cv2.imwrite('{}.png'.format(k), output)
-                    print (k, v.dtype)
-                    save_image(v, '{}.png'.format(k))
-            exit()
+
             # mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV")
             # print (torch.unique(data_gpu['texture']))
-            mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV_RT")
-            exit()
+
             if i % 200 <= 100:
                 mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV_RT")
             else:

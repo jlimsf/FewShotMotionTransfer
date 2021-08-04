@@ -1,0 +1,533 @@
+{'dataroot': '/data/FSMR_data/top_data/train/', 'checkpoint_path': '/data/FSMR_data/checkpoint_fsmt/', 'name': 'selfatt_25', 'batchsize': 16, 'epochs': 100, 'lr': 0.002, 'lr_T': 0.002, 'lr_D': 0.002, 'lr_milestone': [50, 75], 'phase': 'train', 'pretrain_name': '25_train', 'resize': 256, 'texture_size': 128, 'hflip': False, 'URange': 256, 'VRange': 256, 'display_freq': 250, 'body_nc': 26, 'G': {'nf': 32, 'n_res_blks': 5, 'nf_mlp': 256, 'latent_dim': 64, 'n_mlp_blks': 3, 'n_downs_content': 4, 'n_downs_class': 4, 'input_dim': 26}, 'Texture_G': {'nf': 64, 'n_res_blks': 6, 'n_downs': 3, 'input_dim': 72, 'output_dim': 72}, 'num_texture': 8, 'l_texture': 1.0, 'l_coordinate': 20.0, 'l_mask': 0.8, 'l_vgg': 1.0, 'embedding_dir': 'embeddings/embedding_ubc_and_RT/'}
+load 25_train_net_G.pth
+25_train G
+load 25_train_net_Texture_G.pth
+25_train Texture_G
+DataParallel(
+  (module): Model(
+    (generator): Geometry_Generator(
+      (enc_class_model): ClassModelEncoder(
+        (model): ModuleList(
+          (0): Conv2dBlock(
+            (pad): ReflectionPad2d((3, 3, 3, 3))
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(3, 32, kernel_size=(7, 7), stride=(1, 1))
+          )
+          (1): Conv2dBlock(
+            (pad): ReflectionPad2d((1, 1, 1, 1))
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(32, 64, kernel_size=(4, 4), stride=(2, 2))
+          )
+          (2): Conv2dBlock(
+            (pad): ReflectionPad2d((1, 1, 1, 1))
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(64, 128, kernel_size=(4, 4), stride=(2, 2))
+          )
+          (3): Conv2dBlock(
+            (pad): ReflectionPad2d((1, 1, 1, 1))
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(128, 128, kernel_size=(4, 4), stride=(2, 2))
+          )
+          (4): Conv2dBlock(
+            (pad): ReflectionPad2d((1, 1, 1, 1))
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(128, 128, kernel_size=(4, 4), stride=(2, 2))
+          )
+          (5): AdaptiveAvgPool2d(output_size=1)
+          (6): Conv2d(128, 64, kernel_size=(1, 1), stride=(1, 1))
+        )
+      )
+      (enc_content): ContentEncoder(
+        (model): Sequential(
+          (0): Conv2dBlock(
+            (pad): ReflectionPad2d((3, 3, 3, 3))
+            (norm): InstanceNorm2d(32, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(26, 32, kernel_size=(7, 7), stride=(1, 1))
+          )
+          (1): Conv2dBlock(
+            (pad): ReflectionPad2d((1, 1, 1, 1))
+            (norm): InstanceNorm2d(64, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(32, 64, kernel_size=(4, 4), stride=(2, 2))
+          )
+          (2): Conv2dBlock(
+            (pad): ReflectionPad2d((1, 1, 1, 1))
+            (norm): InstanceNorm2d(128, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(64, 128, kernel_size=(4, 4), stride=(2, 2))
+          )
+          (3): Conv2dBlock(
+            (pad): ReflectionPad2d((1, 1, 1, 1))
+            (norm): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(128, 256, kernel_size=(4, 4), stride=(2, 2))
+          )
+          (4): Conv2dBlock(
+            (pad): ReflectionPad2d((1, 1, 1, 1))
+            (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(256, 512, kernel_size=(4, 4), stride=(2, 2))
+          )
+          (5): ResBlocks(
+            (model): Sequential(
+              (0): ResBlock(
+                (model): Sequential(
+                  (0): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (activation): ReLU(inplace=True)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                  (1): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                )
+              )
+              (1): ResBlock(
+                (model): Sequential(
+                  (0): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (activation): ReLU(inplace=True)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                  (1): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                )
+              )
+              (2): ResBlock(
+                (model): Sequential(
+                  (0): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (activation): ReLU(inplace=True)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                  (1): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                )
+              )
+              (3): ResBlock(
+                (model): Sequential(
+                  (0): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (activation): ReLU(inplace=True)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                  (1): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                )
+              )
+              (4): ResBlock(
+                (model): Sequential(
+                  (0): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (activation): ReLU(inplace=True)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                  (1): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+      (dec): Decoder(
+        (model): Sequential(
+          (0): Conv2d(576, 512, kernel_size=(1, 1), stride=(1, 1))
+          (1): ResBlocks(
+            (model): Sequential(
+              (0): ResBlock(
+                (model): Sequential(
+                  (0): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (activation): ReLU(inplace=True)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                  (1): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                )
+              )
+              (1): ResBlock(
+                (model): Sequential(
+                  (0): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (activation): ReLU(inplace=True)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                  (1): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                )
+              )
+              (2): ResBlock(
+                (model): Sequential(
+                  (0): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (activation): ReLU(inplace=True)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                  (1): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                )
+              )
+              (3): ResBlock(
+                (model): Sequential(
+                  (0): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (activation): ReLU(inplace=True)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                  (1): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                )
+              )
+              (4): ResBlock(
+                (model): Sequential(
+                  (0): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (activation): ReLU(inplace=True)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                  (1): Conv2dBlock(
+                    (pad): ReflectionPad2d((1, 1, 1, 1))
+                    (norm): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+                  )
+                )
+              )
+            )
+          )
+        )
+        (mask): ModuleList(
+          (0): Upsample(scale_factor=2.0, mode=nearest)
+          (1): Conv2dBlock(
+            (pad): ReflectionPad2d((2, 2, 2, 2))
+            (norm): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(640, 256, kernel_size=(5, 5), stride=(1, 1))
+          )
+          (2): Upsample(scale_factor=2.0, mode=nearest)
+          (3): Conv2dBlock(
+            (pad): ReflectionPad2d((2, 2, 2, 2))
+            (norm): InstanceNorm2d(128, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(384, 128, kernel_size=(5, 5), stride=(1, 1))
+          )
+          (4): Upsample(scale_factor=2.0, mode=nearest)
+          (5): Conv2dBlock(
+            (pad): ReflectionPad2d((2, 2, 2, 2))
+            (norm): InstanceNorm2d(64, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(256, 64, kernel_size=(5, 5), stride=(1, 1))
+          )
+          (6): Upsample(scale_factor=2.0, mode=nearest)
+          (7): Conv2dBlock(
+            (pad): ReflectionPad2d((2, 2, 2, 2))
+            (norm): InstanceNorm2d(32, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(128, 32, kernel_size=(5, 5), stride=(1, 1))
+          )
+          (8): Conv2dBlock(
+            (pad): ReflectionPad2d((3, 3, 3, 3))
+            (conv): Conv2d(32, 25, kernel_size=(7, 7), stride=(1, 1))
+          )
+        )
+        (coordinate): ModuleList(
+          (0): Upsample(scale_factor=2.0, mode=nearest)
+          (1): Conv2dBlock(
+            (pad): ReflectionPad2d((2, 2, 2, 2))
+            (norm): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(640, 256, kernel_size=(5, 5), stride=(1, 1))
+          )
+          (2): Upsample(scale_factor=2.0, mode=nearest)
+          (3): Conv2dBlock(
+            (pad): ReflectionPad2d((2, 2, 2, 2))
+            (norm): InstanceNorm2d(128, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(384, 128, kernel_size=(5, 5), stride=(1, 1))
+          )
+          (4): Upsample(scale_factor=2.0, mode=nearest)
+          (5): Conv2dBlock(
+            (pad): ReflectionPad2d((2, 2, 2, 2))
+            (norm): InstanceNorm2d(64, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(256, 64, kernel_size=(5, 5), stride=(1, 1))
+          )
+          (6): Upsample(scale_factor=2.0, mode=nearest)
+          (7): Conv2dBlock(
+            (pad): ReflectionPad2d((2, 2, 2, 2))
+            (norm): InstanceNorm2d(32, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False)
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(128, 32, kernel_size=(5, 5), stride=(1, 1))
+          )
+          (8): Conv2dBlock(
+            (pad): ReflectionPad2d((3, 3, 3, 3))
+            (conv): Conv2d(32, 48, kernel_size=(7, 7), stride=(1, 1))
+          )
+        )
+      )
+      (weight_model): WeightEncoder(
+        (model): ModuleList(
+          (0): Conv2dBlock(
+            (pad): ReflectionPad2d((3, 3, 3, 3))
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(26, 32, kernel_size=(7, 7), stride=(1, 1))
+          )
+          (1): Conv2dBlock(
+            (pad): ReflectionPad2d((1, 1, 1, 1))
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(32, 64, kernel_size=(4, 4), stride=(2, 2))
+          )
+          (2): Conv2dBlock(
+            (pad): ReflectionPad2d((1, 1, 1, 1))
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(64, 128, kernel_size=(4, 4), stride=(2, 2))
+          )
+          (3): Conv2dBlock(
+            (pad): ReflectionPad2d((1, 1, 1, 1))
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(128, 128, kernel_size=(4, 4), stride=(2, 2))
+          )
+          (4): Conv2dBlock(
+            (pad): ReflectionPad2d((1, 1, 1, 1))
+            (activation): ReLU(inplace=True)
+            (conv): Conv2d(128, 128, kernel_size=(4, 4), stride=(2, 2))
+          )
+          (5): AdaptiveAvgPool2d(output_size=1)
+          (6): Conv2d(128, 64, kernel_size=(1, 1), stride=(1, 1))
+        )
+      )
+      (att): SelfAttention()
+    )
+    (texture_generator): Texture_Generator(
+      (conv1): Sequential(
+        (0): ReflectionPad2d((3, 3, 3, 3))
+        (1): GatedConv2d(
+          (conv2d): Conv2d(72, 64, kernel_size=(7, 7), stride=(1, 1))
+          (mask_conv2d): Conv2d(72, 64, kernel_size=(7, 7), stride=(1, 1))
+          (sigmoid): Sigmoid()
+          (activation): ReLU(inplace=True)
+        )
+        (2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      )
+      (encoder): ModuleList(
+        (0): Sequential()
+        (1): Sequential(
+          (0): GatedConv2d(
+            (conv2d): Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+            (mask_conv2d): Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+            (sigmoid): Sigmoid()
+            (activation): ReLU(inplace=True)
+          )
+          (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+        (2): Sequential(
+          (0): GatedConv2d(
+            (conv2d): Conv2d(128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+            (mask_conv2d): Conv2d(128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+            (sigmoid): Sigmoid()
+            (activation): ReLU(inplace=True)
+          )
+          (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+        (3): Sequential(
+          (0): GatedConv2d(
+            (conv2d): Conv2d(256, 512, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+            (mask_conv2d): Conv2d(256, 512, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+            (sigmoid): Sigmoid()
+            (activation): ReLU(inplace=True)
+          )
+          (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (resblks): Sequential(
+        (0): ResnetBlock(
+          (conv_block): Sequential(
+            (0): ReflectionPad2d((1, 1, 1, 1))
+            (1): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+            (2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (3): ReLU(inplace=True)
+            (4): ReflectionPad2d((1, 1, 1, 1))
+            (5): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+            (6): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          )
+        )
+        (1): ResnetBlock(
+          (conv_block): Sequential(
+            (0): ReflectionPad2d((1, 1, 1, 1))
+            (1): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+            (2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (3): ReLU(inplace=True)
+            (4): ReflectionPad2d((1, 1, 1, 1))
+            (5): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+            (6): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          )
+        )
+        (2): ResnetBlock(
+          (conv_block): Sequential(
+            (0): ReflectionPad2d((1, 1, 1, 1))
+            (1): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+            (2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (3): ReLU(inplace=True)
+            (4): ReflectionPad2d((1, 1, 1, 1))
+            (5): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+            (6): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          )
+        )
+        (3): ResnetBlock(
+          (conv_block): Sequential(
+            (0): ReflectionPad2d((1, 1, 1, 1))
+            (1): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+            (2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (3): ReLU(inplace=True)
+            (4): ReflectionPad2d((1, 1, 1, 1))
+            (5): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+            (6): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          )
+        )
+        (4): ResnetBlock(
+          (conv_block): Sequential(
+            (0): ReflectionPad2d((1, 1, 1, 1))
+            (1): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+            (2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (3): ReLU(inplace=True)
+            (4): ReflectionPad2d((1, 1, 1, 1))
+            (5): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+            (6): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          )
+        )
+        (5): ResnetBlock(
+          (conv_block): Sequential(
+            (0): ReflectionPad2d((1, 1, 1, 1))
+            (1): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+            (2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (3): ReLU(inplace=True)
+            (4): ReflectionPad2d((1, 1, 1, 1))
+            (5): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1))
+            (6): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          )
+        )
+      )
+      (decoder): ModuleList(
+        (0): Sequential(
+          (0): Upsample(scale_factor=2.0, mode=nearest)
+          (1): GatedConv2d(
+            (conv2d): Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            (mask_conv2d): Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            (sigmoid): Sigmoid()
+            (activation): ReLU(inplace=True)
+          )
+          (2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+        (1): Sequential(
+          (0): Upsample(scale_factor=2.0, mode=nearest)
+          (1): GatedConv2d(
+            (conv2d): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            (mask_conv2d): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            (sigmoid): Sigmoid()
+            (activation): ReLU(inplace=True)
+          )
+          (2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+        (2): Sequential(
+          (0): Upsample(scale_factor=2.0, mode=nearest)
+          (1): GatedConv2d(
+            (conv2d): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            (mask_conv2d): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            (sigmoid): Sigmoid()
+            (activation): ReLU(inplace=True)
+          )
+          (2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (conv_last): Sequential(
+        (0): ReflectionPad2d((3, 3, 3, 3))
+        (1): Conv2d(64, 72, kernel_size=(7, 7), stride=(1, 1))
+      )
+    )
+    (L1Loss): L1Loss()
+    (L2Loss): MSELoss()
+    (PerceptualLoss): VGGLoss(
+      (vgg): Vgg19(
+        (slice1): Sequential(
+          (0): Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): ReLU(inplace=True)
+        )
+        (slice2): Sequential(
+          (2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (3): ReLU(inplace=True)
+          (4): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+          (5): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (6): ReLU(inplace=True)
+        )
+        (slice3): Sequential(
+          (7): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (8): ReLU(inplace=True)
+          (9): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+          (10): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (11): ReLU(inplace=True)
+        )
+        (slice4): Sequential(
+          (12): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (13): ReLU(inplace=True)
+          (14): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (15): ReLU(inplace=True)
+          (16): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (17): ReLU(inplace=True)
+          (18): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+          (19): Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (20): ReLU(inplace=True)
+        )
+        (slice5): Sequential(
+          (21): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (22): ReLU(inplace=True)
+          (23): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (24): ReLU(inplace=True)
+          (25): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (26): ReLU(inplace=True)
+          (27): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+          (28): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (29): ReLU(inplace=True)
+        )
+      )
+      (criterion): L1Loss()
+    )
+    (EntropyLoss): CrossEntropyLoss()
+  )
+)

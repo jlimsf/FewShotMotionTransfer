@@ -1,6 +1,6 @@
 dataroot: /data/FSMR_data/top_data/train/
 checkpoint_path: /data/FSMR_data/checkpoint_fsmt/
-name: selfatt
+name: selfatt_cropping
 
 batchsize: 16
 epochs: 10
@@ -36,5 +36,6 @@ Texture_G:
   n_downs: 3          # number of downsampling layers in content encoder
   input_dim: 72
   output_dim: 72
+  
 
 num_texture: 8

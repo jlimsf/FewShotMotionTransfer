@@ -178,13 +178,14 @@ class GatedConv2d(nn.Module):
 
 
 class Texture_Generator(nn.Module):
-    def __init__(self, config, norm_layer=nn.BatchNorm2d, padding_type='reflect'):
+    def __init__(self, config, norm_layer=nn.InstanceNorm2d, padding_type='reflect'):
         super().__init__()
         ngf = config['nf']
         input_nc = config['input_dim']
         output_nc = config['output_dim']
         n_downsampling = config["n_downs"]
         n_blocks =config['n_res_blks']
+        # norm_layer = config['norm_layer']
         activation = nn.ReLU(True)
 
         self.conv1 = nn.Sequential(

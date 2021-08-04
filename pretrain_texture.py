@@ -9,13 +9,21 @@ from torch.utils.tensorboard import SummaryWriter
 import torch
 import os
 import yaml
+import random
+import numpy as np
 
-import wandb
-wandb.init(sync_tensorboard=True)
+torch.manual_seed(1)
+random.seed(2)
+np.random.seed(3)
+
+# import wandb
+# wandb.init(sync_tensorboard=True)
 
 def pretrain(config, writer, device_idxs=[0]):
 
-    data_loader = DataLoader(ReconstructDataSet(config['dataroot'], config), batch_size=config['batchsize'], num_workers=8, pin_memory=True, shuffle=True)
+    data_loader = DataLoader(ReconstructDataSet(config['dataroot'], config),
+                batch_size=config['batchsize'], num_workers=0,
+                pin_memory=True, shuffle=True)
 
     device = torch.device("cuda:" + str(device_idxs[0]))
     model = Model(config, "pretrain_texture")
@@ -42,9 +50,17 @@ def pretrain(config, writer, device_idxs=[0]):
             if totol_step % config['display_freq'] == 0:
                 b, n, c, h, w = texture_target.size()
 
-                writer.add_images("Texture/output", torch.clamp(texture_output[0].view(24, 3, h, w), 0, 1), totol_step, dataformats="NCHW")
+                writer.add_images("Texture/output_1", torch.clamp(texture_output[0].view(24, 3, h, w), 0, 1), totol_step, dataformats="NCHW")
+                writer.add_images("Texture/output_2", torch.clamp(texture_output[1].view(24, 3, h, w), 0, 1), totol_step, dataformats="NCHW")
+                writer.add_images("Texture/output_3", torch.clamp(texture_output[2].view(24, 3, h, w), 0, 1), totol_step, dataformats="NCHW")
+                writer.add_images("Texture/output_4", torch.clamp(texture_output[3].view(24, 3, h, w), 0, 1), totol_step, dataformats="NCHW")
+
                 writer.add_images("Texture/Target", texture_target[0].view(24*n, 3, h, w), totol_step, dataformats="NCHW")
                 writer.add_images("Texture/input", texture_input[0].view(24*n, 3, h, w), totol_step, dataformats="NCHW")
+                writer.add_images("Image/True_1", data["image"][0].unsqueeze(0) , totol_step, dataformats="NCHW")
+                writer.add_images("Image/True_2", data["image"][1].unsqueeze(0) , totol_step, dataformats="NCHW")
+                writer.add_images("Image/True_3", data["image"][2].unsqueeze(0) , totol_step, dataformats="NCHW")
+                writer.add_images("Image/True_4", data["image"][3].unsqueeze(0) , totol_step, dataformats="NCHW")
 
             totol_step+=1
 
