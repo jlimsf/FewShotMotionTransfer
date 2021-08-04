@@ -242,7 +242,7 @@ class ReconstructDataSet(BaseDataSet):
 
             print (i,j,h,w)
             print (transforms_image)
-            transforms_image.save('debug_box.png')
+            transforms_image.save('debug_box_{}_{}_{}_{}.png'.format(i,j,h,w))
             exit()
             texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
             texture_tensor = F.to_tensor(texture_)
