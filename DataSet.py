@@ -235,6 +235,7 @@ class ReconstructDataSet(BaseDataSet):
             #extract texture on the fly
 
             i, j, h, w = self.get_params(this_image_pil, scale=(0.2 , 1.0), ratio=(3. / 4., 4. / 3.))
+            i,j,h,w = [1,1,25, 25]
             [transforms_densepose, transforms_image] = \
                 self._transform([this_densepose_pil, this_image_pil],
                 [True, False], crop_params = [i,j,h,w], to_flip=0, return_tensor=False )
