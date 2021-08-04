@@ -99,7 +99,6 @@ class ReconstructDataSet(BaseDataSet):
                 resized = resize(new_im)
                 images[i] = resized
 
-
         if to_flip==1:
             for i in range(len(images)):
                 images[i] = F.hflip(images[i])
@@ -203,12 +202,12 @@ class ReconstructDataSet(BaseDataSet):
             IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
 
 
-            i, j, h, w = self.get_params(image, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.))
+            i, j, h, w = self.get_params(image, scale=(0.35 , 1.0), ratio=(3. / 4., 4. / 3.))
             if 'hflip' in self.config and self.config['hflip']:
                 flip_val = random.randint(0, 1)
             else:
                 flip_val = 0
-            flip_val = 1
+
 
             transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
                                                     [False, False, True, True, True, True, True], crop_params = [i,j,h,w], to_flip = flip_val)
@@ -265,38 +264,9 @@ class ReconstructDataSet(BaseDataSet):
                     self._transform([this_densepose_pil, this_image_pil],
                     [True, False], crop_params = [i,j,h,w], to_flip=flip_val, return_tensor=False )
 
-                transforms_densepose.save('debug_uv_.png')
-                transforms_image.save('debug_img_.png')
 
                 texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
-                print (texture_)
-
-                # texture_ndarray = np.asarray(texture_)
-                imageio.imwrite('texture_fly_2.png', texture_)
-                print ("Writing")
-                exit()
                 texture_tensor = F.to_tensor(texture_)
-
-                # texture_fp = os.path.join(folder, "texture", name+".png")
-                # texture_pil = self.loader(texture_fp, mode="RGB")
-                # texture_pil.save('texture_not_fly.png')
-                # texture_ndarray = np.asarray(texture_pil)
-
-                # _, counts_ = np.unique(texture_, return_counts=True)
-                # _, counts = np.unique(texture_ndarray,return_counts=True)
-
-                # texture_tensor = F.to_tensor(texture_pil)
-                # print (texture_tensor)
-                # print (texture_)
-                # print (texture_.shape, texture_.dtype)
-                # print (texture_tensor.shape, texture_tensor.dtype)
-                # print (texture_fp)
-                # print (name)
-                # print (this_densepose_fp ,this_image_fp)
-                # print (torch.eq(texture_tensor, texture_))
-                # print (torch.all(texture_tensor.eq(texture_)))
-                # print (torch.allclose(texture_tensor, texture_))
-                # exit()
 
                 texture_size = texture_tensor.size()[1]//4
                 texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)

@@ -13,6 +13,7 @@ import yaml
 import os, cv2, traceback, shutil
 import numpy as np
 import random
+from torchvision.utils import save_image
 
 torch.manual_seed(1)
 random.seed(2)
@@ -128,7 +129,17 @@ def pretrain(config, writer, device_idxs=[0]):
 
     data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=0, pin_memory=True)
     data_loader_RT = DataLoader(dataset_RT, batch_sampler=sampler_RT, num_workers=0, pin_memory=True)
-    joint_dataloader = DataLoader(joint_dataset, batch_sampler=joint_sampler, num_workers=0, pin_memory=True)
+    joint_dataloader = DataLoader(joint_dataset, batch_sampler=joint_sampler, num_workers=16, pin_memory=True)
+
+    # for x in data_loader:
+    #     texture = x['texture']
+    #     # print (texture)
+    #     # texture = torch.tensor([1, 2, np.nan])
+    #     if torch.isnan(texture).any():
+    #         print (texture)
+    #         print ('nan')
+    #         exit()
+    # exit()
 
     #/data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/'
     # validation_dataset = ValidationTransferDataSet(root='/vid_data/FSMR_data/top_data/train/91-2Jb8DkfS/',
@@ -141,31 +152,41 @@ def pretrain(config, writer, device_idxs=[0]):
     #                             shuffle=False)
     totol_step = 0
 
-    for x in data_loader:
-        print(x.keys())
-        print (x['class_image'].shape)
-        print (x['image'].shape)
-        exit()
-
-
     model = Model(config, "train")
+    # wandb.watch(model, log_freq=250)
     model.prepare_for_train_RT(n_class=len(dataset_RT.filelists))
+    # model.prepare_for_train(n_class=len(dataset.filelists))
     model = model.to(device)
     model = DataParallel(model,  device_idxs)
     model.train()
 
+    # wandb.watch(model, log_freq=1)
+
     # init_embedding_matrix(model, joint_dataloader, config['embedding_dir'], config, device)
-    exit()
+
+    joint_dataloader = data_loader
+
 
     print (model)
 
     for epoch in trange(config['epochs']):
 
-        for i, data in tqdm(enumerate(joint_dataloader)):
+        iterator = tqdm(enumerate(joint_dataloader), total=len(joint_dataloader))
+        for i, data in iterator:
 
             data_gpu = {key: item.to(device) for key, item in data.items()}
+            for k,v in data_gpu.items():
+                print (k)
+                if k in ['image', 'class_image']:
+                    # output = v.cpu().numpy()
+                    # cv2.imwrite('{}.png'.format(k), output)
+                    print (k, v.dtype)
+                    save_image(v, '{}.png'.format(k))
+            exit()
+            # mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV")
+            # print (torch.unique(data_gpu['texture']))
             mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV_RT")
-
+            exit()
             if i % 200 <= 100:
                 mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV_RT")
             else:
@@ -188,6 +209,9 @@ def pretrain(config, writer, device_idxs=[0]):
 
             loss_G.backward()
 
+            torch.nn.utils.clip_grad_norm_(model.parameters(),max_norm=2.0, norm_type=2)
+
+            # print (loss_G, i)
             if i % 200 <= 100:
                 model.module.optimizer_G.step()
                 # model.module.optimizer_texture_stack.step()
@@ -215,7 +239,9 @@ def pretrain(config, writer, device_idxs=[0]):
                 writer.add_images("Mask/Generate", (1 - mask[:,0]).unsqueeze(1), totol_step, dataformats='NCHW')
                 writer.add_images("Mask/Individual", utils.d_colorize(mask_label), totol_step, dataformats="NCHW")
                 writer.add_images("Mask/Target", data["foreground"], totol_step, dataformats="NCHW")
+                print (torch.unique(fake_image))
                 writer.add_images("Image/Fake", torch.clamp(fake_image, 0, 1), totol_step, dataformats="NCHW")
+                print (torch.unique(torch.clamp(fake_image, 0, 1)))
                 writer.add_images("Image/True", data["image"] * data["foreground"].expand_as(data["image"]).to(torch.float32), totol_step, dataformats="NCHW")
                 writer.add_images("Input/body", body_sum, totol_step, dataformats="NCHW")
 

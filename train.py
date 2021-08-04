@@ -111,6 +111,12 @@ def pretrain(config, writer, device_idxs=[0]):
     # model = DataParallel(model,  device_idxs)
     model.train()
 
+    for x in data_loader:
+        print(x.keys())
+        print (x['class_image'].shape)
+        print (x['image'].shape)
+        exit()
+
 
     for epoch in trange(config['epochs']):
 

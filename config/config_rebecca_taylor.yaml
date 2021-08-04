@@ -2,7 +2,7 @@ dataroot: /data/FSMR_data/top_data/train/
 checkpoint_path: /data/FSMR_data/checkpoint_fsmt/
 name: selfatt_25
 
-batchsize: 12
+batchsize: 16
 epochs: 100
 lr: 0.0002
 lr_T: 0.0002
@@ -16,7 +16,7 @@ pretrain_name: 25_train
 
 resize: 256
 texture_size: 128
-hflip: true
+hflip: false
 URange: 256
 VRange: 256
 

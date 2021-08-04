@@ -83,8 +83,8 @@ class Model(nn.Module):
         self.texture_stack = nn.Parameter(texture_stack)
         self.texture_list = [False for i in range(n_class)]
 
-        self.optimizer_texture_stack = torch.optim.Adam([self.texture_stack], lr=self.lr_T, betas=(0.5, 0.999))
-        # self.optimizer_texture_stack = torch.optim.SGD([self.texture_stack], lr=self.lr_T *10) #,  momentum=0.9, nesterov =True)
+        # self.optimizer_texture_stack = torch.optim.Adam([self.texture_stack], lr=self.lr_T, betas=(0.5, 0.999))
+        self.optimizer_texture_stack = torch.optim.SGD([self.texture_stack], lr=self.lr_T *10) #,  momentum=0.9, nesterov =True)
 
     def prepare_for_train_RT(self, n_class=10):
         self.prepare_for_pretrain()
@@ -202,8 +202,6 @@ class Model(nn.Module):
         label_code, label_feature = self.generator.att(weight_codes, weight_features, class_weight_codes, class_weight_features, label_codes, label_features)
         mask, coordinate = self.generator.dec(pose_code, label_code, label_feature)
 
-        print (self.texture_stack)
-        exit()
         if mode == 'UV':
             label = int(data['class'][0])
 
@@ -220,7 +218,7 @@ class Model(nn.Module):
                 texture = self.texture_stack[label].unsqueeze(0)
                 self.texture_list[label] = True
 
-                
+
 
         else:
             part_texture = data["texture"][:self.config['num_texture']]
