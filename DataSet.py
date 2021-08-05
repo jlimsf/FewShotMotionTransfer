@@ -100,9 +100,9 @@ class ReconstructDataSet(BaseDataSet):
                 cropped = F.crop(this_im, i, j, h, w)
                 print (i, j, h , w)
                 cropped.save('cropped_orig.png')
-                cropper = torchvision.transforms.RandomCrop(size=(128, 128))
+                cropper = transforms.RandomCrop(size=(128, 128))
                 for crop_idx in range(25):
-                    cropped = cropped(img)
+                    cropped = cropper(this_im)
                     cropped.save('{}cropper.png'.format(crop_idx))
 
                 exit()
@@ -174,7 +174,7 @@ class ReconstructDataSet(BaseDataSet):
         # print (i,j, h,w)
         # return i, j, h, w
 
-    def get_params(img, output_size):
+    def get_params(self, img, output_size):
         """Get parameters for ``crop`` for a random crop.
         Args:
             img (PIL Image): Image to be cropped.
@@ -182,7 +182,7 @@ class ReconstructDataSet(BaseDataSet):
         Returns:
             tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
         """
-        w, h = _get_image_size(img)
+        w, h = img.size
         th, tw = output_size
         if w == tw and h == th:
             return 0, 0, h, w
@@ -241,7 +241,7 @@ class ReconstructDataSet(BaseDataSet):
 
             # i, j, h, w = self.get_params(image, scale=(0.2 , 1.0), ratio=(3. / 4., 4. / 3.))
             # i, j, h, w = self.get_params(image, scale=(0.65 , 1.0), ratio=(1.0, 1.0 ))
-            i,j,h,w = self.get_params(image, size=(self.size//2, self.size//2))
+            i,j,h,w = self.get_params(image, output_size=(self.size//2, self.size//2) )
             # i,j,h,w = 0,0,256,256
             # print (i,j,h,w)
             # exit()
