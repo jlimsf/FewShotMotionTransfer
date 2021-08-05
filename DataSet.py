@@ -96,9 +96,10 @@ class ReconstructDataSet(BaseDataSet):
             for i in range(len(images)):
                 this_im = images[i]
                 new_im = F.resized_crop(this_im, i, j, h, w, self.size, Image.BILINEAR)
-                five_crops = F.five_crop(this_im, (self.size // 4, self.size //4))
+                five_crops = F.five_crop(this_im, (self.size // 2, self.size //2))
 
                 for k, fc in enumerate(five_crops):
+                    print (five_crops)
                     fc.save('{}_crop.png'.format(k))
 
                 exit()
