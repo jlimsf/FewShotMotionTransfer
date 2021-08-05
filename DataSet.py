@@ -97,7 +97,15 @@ class ReconstructDataSet(BaseDataSet):
                 this_im = images[i]
                 new_im = F.resized_crop(this_im, i, j, h, w, self.size, Image.BILINEAR)
                 five_crops = F.five_crop(this_im, (self.size //2, self.size//2 ))
+                cropped = F.crop(this_im, i, j, h, w)
+                print (i, j, h , w)
+                cropped.save('cropped_orig.png')
+                cropper = torchvision.transforms.RandomCrop(size=(128, 128))
+                for crop_idx in range(25):
+                    cropped = cropped(img)
+                    cropped.save('{}cropper.png'.format(crop_idx))
 
+                exit()
                 for k, fc in enumerate(five_crops):
                     print (five_crops)
                     fc.save('{}_128_crop.png'.format(k))
@@ -123,48 +131,65 @@ class ReconstructDataSet(BaseDataSet):
             return images
 
 
-    def get_params(self, img, scale, ratio):
-        """Get parameters for ``crop`` for a random sized crop.
-        Args:
-            img (PIL Image): Image to be cropped.
-            scale (tuple): range of size of the origin size cropped
-            ratio (tuple): range of aspect ratio of the origin aspect ratio cropped
-        Returns:
-            tuple: params (i, j, h, w) to be passed to ``crop`` for a random
-                sized crop.
-        """
-        width, height = img.size
-        area = height * width
-
-        for attempt in range(10):
-            target_area = random.uniform(*scale) * area
-            log_ratio = (math.log(ratio[0]), math.log(ratio[1]))
-            aspect_ratio = math.exp(random.uniform(*log_ratio))
-
-            w = int(round(math.sqrt(target_area * aspect_ratio)))
-            h = int(round(math.sqrt(target_area / aspect_ratio)))
-
-            if 0 < w <= width and 0 < h <= height:
-                i = random.randint(0, height - h)
-                j = random.randint(0, width - w)
-
-                return i, j, h, w
+    # def get_params(self, img, scale, ratio):
+        # """Get parameters for ``crop`` for a random sized crop.
+        # Args:
+        #     img (PIL Image): Image to be cropped.
+        #     scale (tuple): range of size of the origin size cropped
+        #     ratio (tuple): range of aspect ratio of the origin aspect ratio cropped
+        # Returns:
+        #     tuple: params (i, j, h, w) to be passed to ``crop`` for a random
+        #         sized crop.
+        # """
+        # width, height = img.size
+        # area = height * width
+        #
+        # for attempt in range(10):
+        #     target_area = random.uniform(*scale) * area
+        #     log_ratio = (math.log(ratio[0]), math.log(ratio[1]))
+        #     aspect_ratio = math.exp(random.uniform(*log_ratio))
+        #
+        #     w = int(round(math.sqrt(target_area * aspect_ratio)))
+        #     h = int(round(math.sqrt(target_area / aspect_ratio)))
+        #
+        #     if 0 < w <= width and 0 < h <= height:
+        #         i = random.randint(0, height - h)
+        #         j = random.randint(0, width - w)
+        #
+        #         return i, j, h, w
 
         # Fallback to central crop
-        in_ratio = float(width) / float(height)
-        if (in_ratio < min(ratio)):
-            w = width
-            h = int(round(w / min(ratio)))
-        elif (in_ratio > max(ratio)):
-            h = height
-            w = int(round(h * max(ratio)))
-        else:  # whole image
-            w = width
-            h = height
-        i = (height - h) // 2
-        j = (width - w) // 2
-        print (i,j, h,w)
-        return i, j, h, w
+        # in_ratio = float(width) / float(height)
+        # if (in_ratio < min(ratio)):
+        #     w = width
+        #     h = int(round(w / min(ratio)))
+        # elif (in_ratio > max(ratio)):
+        #     h = height
+        #     w = int(round(h * max(ratio)))
+        # else:  # whole image
+        #     w = width
+        #     h = height
+        # i = (height - h) // 2
+        # j = (width - w) // 2
+        # print (i,j, h,w)
+        # return i, j, h, w
+
+    def get_params(img, output_size):
+        """Get parameters for ``crop`` for a random crop.
+        Args:
+            img (PIL Image): Image to be cropped.
+            output_size (tuple): Expected output size of the crop.
+        Returns:
+            tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
+        """
+        w, h = _get_image_size(img)
+        th, tw = output_size
+        if w == tw and h == th:
+            return 0, 0, h, w
+
+        i = random.randint(0, h - th)
+        j = random.randint(0, w - tw)
+        return i, j, th, tw
 
     def GetTexture(self, im, IUV):
         '''
@@ -215,7 +240,8 @@ class ReconstructDataSet(BaseDataSet):
 
 
             # i, j, h, w = self.get_params(image, scale=(0.2 , 1.0), ratio=(3. / 4., 4. / 3.))
-            i, j, h, w = self.get_params(image, scale=(0.65 , 1.0), ratio=(1.0, 1.0 ))
+            # i, j, h, w = self.get_params(image, scale=(0.65 , 1.0), ratio=(1.0, 1.0 ))
+            i,j,h,w = self.get_params(image, size=(self.size//2, self.size//2))
             # i,j,h,w = 0,0,256,256
             # print (i,j,h,w)
             # exit()
