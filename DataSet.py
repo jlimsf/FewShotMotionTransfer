@@ -95,22 +95,10 @@ class ReconstructDataSet(BaseDataSet):
             resize = transforms.Resize(size, Image.NEAREST)
             for i in range(len(images)):
                 this_im = images[i]
-                new_im = F.resized_crop(this_im, i, j, h, w, self.size, Image.BILINEAR)
-                five_crops = F.five_crop(this_im, (self.size //2, self.size//2 ))
-                cropped = F.crop(this_im, i, j, h, w)
-                print (i, j, h , w)
-                cropped.save('cropped_orig.png')
-                cropper = transforms.RandomCrop(size=(128, 128))
-                for crop_idx in range(25):
-                    cropped = cropper(this_im)
-                    cropped.save('{}cropper.png'.format(crop_idx))
+                # new_im = F.resized_crop(this_im, i, j, h, w, self.size, Image.BILINEAR)
+                # five_crops = F.five_crop(this_im, (self.size //2, self.size//2 ))
+                new_im = F.crop(this_im, i, j, h, w)
 
-                exit()
-                for k, fc in enumerate(five_crops):
-                    print (five_crops)
-                    fc.save('{}_128_crop.png'.format(k))
-
-                exit()
                 resized = resize(new_im)
                 # resized = new_im
                 # resized.save('{}.png'.format(i))
@@ -279,7 +267,8 @@ class ReconstructDataSet(BaseDataSet):
             this_image_pil = self.loader(this_image_fp, mode="RGB")
             #extract texture on the fly
 
-            i, j, h, w = self.get_params(this_image_pil, scale=(0.65 , 1.0), ratio=(3. / 4., 4. / 3.))
+            # i, j, h, w = self.get_params(this_image_pil, scale=(0.65 , 1.0), ratio=(3. / 4., 4. / 3.))
+            i,j,h,w = self.get_params(image, output_size=(self.size//2, self.size//2) )
             # i,j,h,w = [1,1,25, 25]
             [transforms_densepose, transforms_image] = \
                 self._transform([this_densepose_pil, this_image_pil],
