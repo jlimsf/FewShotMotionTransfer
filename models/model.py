@@ -68,6 +68,7 @@ class Model(nn.Module):
         self.scheduler_G = torch.optim.lr_scheduler.MultiStepLR(self.optimizer_G, self.config["lr_milestone"], gamma=0.5)
 
     def prepare_for_texture(self):
+        # self.restore_network()
         self.lr_T = self.config['lr_T']
         T_params = self.texture_generator.parameters()
         self.optimizer_T = torch.optim.Adam(T_params, lr=self.lr_T, betas=(0.5, 0.999))

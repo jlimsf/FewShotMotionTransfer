@@ -16,13 +16,13 @@ torch.manual_seed(1)
 random.seed(2)
 np.random.seed(3)
 
-# import wandb
-# wandb.init(sync_tensorboard=True)
+import wandb
+wandb.init(sync_tensorboard=True)
 
 def pretrain(config, writer, device_idxs=[0]):
 
     data_loader = DataLoader(ReconstructDataSet(config['dataroot'], config),
-                batch_size=config['batchsize'], num_workers=0,
+                batch_size=config['batchsize'], num_workers=8,
                 pin_memory=True, shuffle=True)
 
     device = torch.device("cuda:" + str(device_idxs[0]))

@@ -10,7 +10,7 @@ lr_milestone:
   - 5
 
 phase: pretrain_texture
-pretrain_name:
+pretrain_name: 
 
 resize: 256
 texture_size: 128
@@ -36,6 +36,6 @@ Texture_G:
   n_downs: 3          # number of downsampling layers in content encoder
   input_dim: 72
   output_dim: 72
-  
+
 
 num_texture: 8

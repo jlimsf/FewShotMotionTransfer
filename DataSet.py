@@ -96,8 +96,14 @@ class ReconstructDataSet(BaseDataSet):
             for i in range(len(images)):
                 this_im = images[i]
                 new_im = F.resized_crop(this_im, i, j, h, w, self.size, Image.BILINEAR)
-                resized = resize(new_im)
+                # resized = resize(new_im)
+                resized = new_im
+                resized.save('{}.png'.format(i))
                 images[i] = resized
+
+
+            print (images)
+            exit()
 
         if to_flip==1:
             for i in range(len(images)):
@@ -159,6 +165,7 @@ class ReconstructDataSet(BaseDataSet):
         '''
         This indexing below is different than the original author's code
         '''
+
         U = IUV[:, :, 1]
         V = IUV[:, :, 0]
 
@@ -203,6 +210,10 @@ class ReconstructDataSet(BaseDataSet):
 
 
             i, j, h, w = self.get_params(image, scale=(0.2 , 1.0), ratio=(3. / 4., 4. / 3.))
+            # i, j, h, w = self.get_params(image, scale=(0.8 , 1.0), ratio=(1.0, 1.0))
+            # i,j,h,w = 0,0,256,256
+            # print (i,j,h,w)
+            # exit()
             if 'hflip' in self.config and self.config['hflip']:
                 flip_val = random.randint(0, 1)
             else:
@@ -214,7 +225,10 @@ class ReconstructDataSet(BaseDataSet):
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
 
+
+
             data["mask"] = data["IUV"][-1,:,:]
+
             data["foreground"] = (data["foreground"] > 0).to(torch.long)
             data["U"] = data["IUV"][1,:,:].unsqueeze(0).to(torch.float32)/self.config["URange"]
             data["V"] = data["IUV"][0,:,:].unsqueeze(0).to(torch.float32)/self.config["VRange"]
@@ -235,16 +249,16 @@ class ReconstructDataSet(BaseDataSet):
             #extract texture on the fly
 
             i, j, h, w = self.get_params(this_image_pil, scale=(0.2 , 1.0), ratio=(3. / 4., 4. / 3.))
-            i,j,h,w = [1,1,25, 25]
+            # i,j,h,w = [1,1,25, 25]
             [transforms_densepose, transforms_image] = \
                 self._transform([this_densepose_pil, this_image_pil],
                 [True, False], crop_params = [i,j,h,w], to_flip=0, return_tensor=False )
 
-            print (i,j,h,w)
-            print (transforms_image)
-            transforms_image.save('debug_box_{}_{}_{}_{}.png'.format(i,j,h,w))
-            print ("saving")
-            exit()
+            # print (i,j,h,w)
+            # print (transforms_image)
+            # transforms_image.save('debug_box_{}_{}_{}_{}.png'.format(i,j,h,w))
+            # print ("saving")
+            # exit()
             texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
             texture_tensor = F.to_tensor(texture_)
 
