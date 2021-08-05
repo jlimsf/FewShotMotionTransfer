@@ -22,7 +22,7 @@ np.random.seed(3)
 def pretrain(config, writer, device_idxs=[0]):
 
     data_loader = DataLoader(ReconstructDataSet(config['dataroot'], config),
-                    batch_size=config['batchsize'], num_workers=0,
+                    batch_size=config['batchsize'], num_workers=16,
                     pin_memory=False, shuffle=True)
     print (data_loader)
 
@@ -45,11 +45,11 @@ def pretrain(config, writer, device_idxs=[0]):
 
             # if i < 600: continue
 
-            for k,v in data.items():
-                # v = torch.tensor([1, 2, np.nan])
-                if k == 'class': continue
-                if torch.isnan(v).any():
-                    print ("Found nan in {} , {}".format(i, k))
+            # for k,v in data.items():
+            #     # v = torch.tensor([1, 2, np.nan])
+            #     if k == 'class': continue
+            #     if torch.isnan(v).any():
+            #         print ("Found nan in {} , {}".format(i, k))
 
             data_gpu = {key: item.to(device) for key, item in data.items()}
 

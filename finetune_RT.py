@@ -19,9 +19,9 @@ torch.manual_seed(1)
 random.seed(2)
 np.random.seed(3)
 
-# import wandb
+import wandb
 # wandb.init(sync_tensorboard=True)
-
+#
 def validation(model, validation_loader, device, epoch, subject_name, image_size, writer):
 
 
@@ -127,7 +127,7 @@ def pretrain(config, writer, device_idxs=[0]):
     sampler_RT = utils.TrainSampler(config['batchsize'], dataset_RT.filelists)
     joint_sampler = utils.TrainSampler(config['batchsize'], joined_filelist)
 
-    data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=0, pin_memory=True)
+    data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=0, pin_memory=False)
     data_loader_RT = DataLoader(dataset_RT, batch_sampler=sampler_RT, num_workers=0, pin_memory=True)
     joint_dataloader = DataLoader(joint_dataset, batch_sampler=joint_sampler, num_workers=16, pin_memory=True)
 
@@ -167,9 +167,7 @@ def pretrain(config, writer, device_idxs=[0]):
     joint_dataloader = data_loader
 
 
-    print (model)
 
-    exit()
 
     for epoch in trange(config['epochs']):
 

@@ -96,14 +96,16 @@ class ReconstructDataSet(BaseDataSet):
             for i in range(len(images)):
                 this_im = images[i]
                 new_im = F.resized_crop(this_im, i, j, h, w, self.size, Image.BILINEAR)
-                # resized = resize(new_im)
-                resized = new_im
-                resized.save('{}.png'.format(i))
+                five_crops = F.five_crop(this_im, (self.size // 4, self.size //4))
+
+                for k, fc in enumerate(five_crops):
+                    fc.save('{}_crop.png'.format(k))
+
+                exit()
+                resized = resize(new_im)
+                # resized = new_im
+                # resized.save('{}.png'.format(i))
                 images[i] = resized
-
-
-            print (images)
-            exit()
 
         if to_flip==1:
             for i in range(len(images)):
@@ -144,6 +146,7 @@ class ReconstructDataSet(BaseDataSet):
             if 0 < w <= width and 0 < h <= height:
                 i = random.randint(0, height - h)
                 j = random.randint(0, width - w)
+
                 return i, j, h, w
 
         # Fallback to central crop
@@ -159,6 +162,7 @@ class ReconstructDataSet(BaseDataSet):
             h = height
         i = (height - h) // 2
         j = (width - w) // 2
+        print (i,j, h,w)
         return i, j, h, w
 
     def GetTexture(self, im, IUV):
@@ -209,8 +213,8 @@ class ReconstructDataSet(BaseDataSet):
             IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
 
 
-            i, j, h, w = self.get_params(image, scale=(0.2 , 0.21), ratio=(3. / 4., 4. / 3.))
-            # i, j, h, w = self.get_params(image, scale=(0.8 , 1.0), ratio=(1.0, 1.0))
+            # i, j, h, w = self.get_params(image, scale=(0.2 , 1.0), ratio=(3. / 4., 4. / 3.))
+            i, j, h, w = self.get_params(image, scale=(0.65 , 1.0), ratio=(1.0, 1.0 ))
             # i,j,h,w = 0,0,256,256
             # print (i,j,h,w)
             # exit()
@@ -248,7 +252,7 @@ class ReconstructDataSet(BaseDataSet):
             this_image_pil = self.loader(this_image_fp, mode="RGB")
             #extract texture on the fly
 
-            i, j, h, w = self.get_params(this_image_pil, scale=(0.2 , 1.0), ratio=(3. / 4., 4. / 3.))
+            i, j, h, w = self.get_params(this_image_pil, scale=(0.65 , 1.0), ratio=(3. / 4., 4. / 3.))
             # i,j,h,w = [1,1,25, 25]
             [transforms_densepose, transforms_image] = \
                 self._transform([this_densepose_pil, this_image_pil],
