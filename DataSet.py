@@ -209,7 +209,7 @@ class ReconstructDataSet(BaseDataSet):
             IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
 
 
-            i, j, h, w = self.get_params(image, scale=(0.2 , 0.2), ratio=(3. / 4., 4. / 3.))
+            i, j, h, w = self.get_params(image, scale=(0.2 , 0.21), ratio=(3. / 4., 4. / 3.))
             # i, j, h, w = self.get_params(image, scale=(0.8 , 1.0), ratio=(1.0, 1.0))
             # i,j,h,w = 0,0,256,256
             # print (i,j,h,w)
