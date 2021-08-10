@@ -12,9 +12,18 @@ import utils
 import yaml
 import os, cv2, traceback, shutil
 import numpy as np
-
-# import wandb
+import torchvision.transforms as transforms
+import random
+import numpy as np
+import wandb
+import torchvision
 # wandb.init(sync_tensorboard=True)
+
+
+
+torch.manual_seed(1)
+random.seed(2)
+np.random.seed(3)
 
 def validation(model, validation_loader, device, epoch, subject_name, image_size, writer):
 
@@ -79,44 +88,29 @@ def validation(model, validation_loader, device, epoch, subject_name, image_size
 
 def pretrain(config, writer, device_idxs=[0]):
 
+    inv_normalize = transforms.Normalize(
+            mean=[-1, -1, -1],
+            std=[1/0.5, 1/0.5, 1/0.5]
+        )
+
     print (config)
     device = torch.device("cuda:" + str(device_idxs[0]))
 
     # dist.init_process_group(backend='nccl', init_method="tcp://localhost:29501", rank=rank, world_size=4)
 
-    dataset = ReconstructDataSet(config['dataroot'], config)
-    dataset_RT = RT_ReconstructDataSet('/vid_data/FSMR_data/rebecca_taylor_top/train', config)
+    dataset = ReconstructDataSet(config['dataroot'], config,to_crop=True)
+    # dataset_RT = RT_ReconstructDataSet('/vid_data/FSMR_data/rebecca_taylor_top/train', config)
 
     sampler = utils.TrainSampler(config['batchsize'], dataset.filelists)
-    sampler_RT = utils.TrainSampler(config['batchsize'], dataset_RT.filelists)
+    data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=16,  pin_memory=False)
 
-    data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=0, pin_memory=True)
-    data_loader_RT = DataLoader(dataset_RT, batch_sampler=sampler_RT, num_workers=0, pin_memory=True)
-
-    #/data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/'
-    validation_dataset = ValidationTransferDataSet(root='/vid_data/FSMR_data/top_data/train/91-2Jb8DkfS/',
-                                        src_root='/vid_data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/',
-                                        config=config)
-
-    validation_loader = DataLoader(validation_dataset,
-                                1, num_workers=4,
-                                pin_memory=True,
-                                shuffle=False)
     totol_step = 0
 
-
     model = Model(config, "train")
-    model.prepare_for_train(n_class=len(dataset.filelists))
+    model.prepare_for_train_RT(n_class=len(dataset.filelists))
     model = model.to(device)
-    # model = DataParallel(model,  device_idxs)
+    model = DataParallel(model,  device_idxs)
     model.train()
-
-    for x in data_loader:
-        print(x.keys())
-        print (x['class_image'].shape)
-        print (x['image'].shape)
-        exit()
-
 
     for epoch in trange(config['epochs']):
 
@@ -125,12 +119,11 @@ def pretrain(config, writer, device_idxs=[0]):
         for i, data in iterator:
 
             data_gpu = {key: item.to(device) for key, item in data.items()}
-            print (torch.unique(data_gpu['mask']))
-            exit()
+
             if i % 200 <= 100:
-                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV")
+                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV_RT")
             else:
-                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_texture")
+                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_texture_RT")
 
             for key, item in losses.items():
                 losses[key] = item.mean()
@@ -138,7 +131,7 @@ def pretrain(config, writer, device_idxs=[0]):
 
             if i % 200 <= 100:
                 model.module.optimizer_G.zero_grad()
-                model.module.optimizer_texture_stack.zero_grad()
+                # model.module.optimizer_texture_stack.zero_grad()
                 # optimizer_G.zero_grad()
                 # optimizer_TS.zero_grad()
             else:
@@ -150,10 +143,19 @@ def pretrain(config, writer, device_idxs=[0]):
                      + losses.get("loss_mask", 0) * config['l_mask']
 
             loss_G.backward()
+            print (loss_G, losses['loss_G_L1'], losses['perceptual_loss'])
+            if torch.isnan(loss_G):
+                print ("Nan")
+                print (losses)
+                print (data["class_image"].shape)
+                # normalized_im = inv_normalize['image']
+                torchvision.utils.save_image(torchvision.utils.make_grid(data['image'], normalize=True), fp = 'image.png')
+                torchvision.utils.save_image(torchvision.utils.make_grid(data['class_image'], normalize=True), fp = 'class_image.png')
+                exit()
 
             if i % 200 <= 100:
                 model.module.optimizer_G.step()
-                model.module.optimizer_texture_stack.step()
+                # model.module.optimizer_texture_stack.step()
                 # optimizer_G.step()
                 # optimizer_TS.step()
 
@@ -181,8 +183,8 @@ def pretrain(config, writer, device_idxs=[0]):
                 writer.add_images("Mask/Generate", (1 - mask[:,0]).unsqueeze(1), totol_step, dataformats='NCHW')
                 writer.add_images("Mask/Individual", utils.d_colorize(mask_label), totol_step, dataformats="NCHW")
                 writer.add_images("Mask/Target", data["foreground"], totol_step, dataformats="NCHW")
-                writer.add_images("Image/Fake", torch.clamp(fake_image, 0, 1), totol_step, dataformats="NCHW")
-                writer.add_images("Image/True", data["image"] * data["foreground"].expand_as(data["image"]).to(torch.float32), totol_step, dataformats="NCHW")
+                writer.add_images("Image/Fake", inv_normalize(torch.clamp(fake_image, 0, 1)), totol_step, dataformats="NCHW")
+                writer.add_images("Image/True", inv_normalize(data["image"] * data["foreground"].expand_as(data["image"]).to(torch.float32)), totol_step, dataformats="NCHW")
                 writer.add_images("Input/body", body_sum, totol_step, dataformats="NCHW")
 
             totol_step+=1

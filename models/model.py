@@ -54,6 +54,7 @@ class Model(nn.Module):
         self.L2Loss = nn.MSELoss(reduction='none')
         self.PerceptualLoss = VGGLoss()
 
+
     def restore_network(self):
         self.load_network(self.generator, 'G', self.config['pretrain_name'])
         self.load_network(self.texture_generator, 'Texture_G', self.config['pretrain_name'])
@@ -85,7 +86,7 @@ class Model(nn.Module):
         self.texture_list = [False for i in range(n_class)]
 
         # self.optimizer_texture_stack = torch.optim.Adam([self.texture_stack], lr=self.lr_T, betas=(0.5, 0.999))
-        self.optimizer_texture_stack = torch.optim.SGD([self.texture_stack], lr=self.lr_T *10) #,  momentum=0.9, nesterov =True)
+        self.optimizer_texture_stack = torch.optim.SGD([self.texture_stack], lr=self.lr_T *10,  momentum=0.9, nesterov =True)
 
     def prepare_for_train_RT(self, n_class=10):
         self.prepare_for_pretrain()
@@ -153,14 +154,17 @@ class Model(nn.Module):
         return prob_mask, fake_image
 
     def pretrain(self, data):
+
         input, class_input = self._get_input_pose(data)
 
-        pose_code = self.generator.enc_content(input)
+        pose_code = self.generator.enc_content(input) #uses instance norm
         label_codes, label_features = self.generator.enc_class_model(data["class_image"]*data["class_foreground"].expand(-1,3,-1,-1))
         weight_codes, weight_features = self.generator.weight_model(input)
         class_weight_codes, class_weight_features = self.generator.weight_model(class_input)
         label_code, label_feature = self.generator.att(weight_codes, weight_features, class_weight_codes, class_weight_features, label_codes, label_features)
-        mask, coordinate = self.generator.dec(pose_code, label_code, label_feature)
+        mask, coordinate = self.generator.dec(pose_code, label_code, label_feature) #uses instance norm
+
+
 
         mask_loss = self.EntropyLoss(mask, data["mask"])
         target_U = data["U"].expand(-1,24,-1,-1)
@@ -208,6 +212,7 @@ class Model(nn.Module):
 
             if self.texture_list[label]:
                 texture = self.texture_stack[label].unsqueeze(0)
+
             else:
                 with torch.no_grad():
                     part_texture = data["texture"][:self.config['num_texture']]
@@ -333,8 +338,9 @@ class Model(nn.Module):
         loss["loss_G_mask"] = F.nll_loss(binary_prob, target_binary)
 
         loss_G_L1 = self.L1Loss(fake_image, real_image)*(target_binary.expand(-1,3,-1,-1))
-        loss["loss_G_L1"] = loss_G_L1.sum()/target_binary.expand(-1,3,-1,-1).sum() + self.PerceptualLoss(fake_image, real_image) * self.config['l_vgg']
-
+        percep_loss = self.PerceptualLoss(fake_image, real_image) * self.config['l_vgg']
+        loss["loss_G_L1"] = loss_G_L1.sum()/target_binary.expand(-1,3,-1,-1).sum() + percep_loss
+        loss['perceptual_loss'] = percep_loss
         return loss
 
     def create_loss_finetune(self, mask, target_binary, fake_image, real_image):
@@ -379,7 +385,7 @@ class Model(nn.Module):
         return mask_loss.mean()
 
     def forward(self, data, phase):
-        # with torch.cuda.amp.autocast():
+
         if phase == 'pretrain':
             return self.pretrain(data)
         if phase == 'pretrain_texture':

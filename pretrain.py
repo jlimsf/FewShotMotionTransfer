@@ -11,9 +11,10 @@ import os, random
 import numpy as np
 import utils
 import yaml
+from torchvision import transforms
 
 import wandb
-# wandb.init(sync_tensorboard=True)
+wandb.init(sync_tensorboard=True)
 
 torch.manual_seed(1)
 random.seed(2)
@@ -21,9 +22,10 @@ np.random.seed(3)
 
 def pretrain(config, writer, device_idxs=[0]):
 
-    data_loader = DataLoader(ReconstructDataSet(config['dataroot'], config),
+
+    data_loader = DataLoader(ReconstructDataSet(config['dataroot'], config, to_crop=True),
                     batch_size=config['batchsize'], num_workers=16,
-                    pin_memory=False, shuffle=True)
+                    pin_memory=False, shuffle=True, drop_last=True)
     print (data_loader)
 
 
@@ -35,26 +37,19 @@ def pretrain(config, writer, device_idxs=[0]):
     model = DataParallel(model, device_idxs)
     model.train()
 
-    # wandb.watch(model.module.generator, log_freq=1, log='all')
-
+    inv_normalize = transforms.Normalize(
+            mean=[-1, -1, -1],
+            std=[1/0.5, 1/0.5, 1/0.5]
+        )
 
     totol_step = 0
+
     for epoch in trange(config['epochs']):
         iterator = tqdm(enumerate(data_loader), total=len(data_loader))
         for i, data in iterator:
-
-            # if i < 600: continue
-
-            # for k,v in data.items():
-            #     # v = torch.tensor([1, 2, np.nan])
-            #     if k == 'class': continue
-            #     if torch.isnan(v).any():
-            #         print ("Found nan in {} , {}".format(i, k))
-
             data_gpu = {key: item.to(device) for key, item in data.items()}
 
             loss_mask, loss_coordinate, mask, coordinate, body, label_mask = model(data_gpu, "pretrain")
-
 
             loss_mask = loss_mask.mean()
             loss_coordinate = loss_coordinate.mean()
@@ -67,9 +62,9 @@ def pretrain(config, writer, device_idxs=[0]):
             writer.add_scalar("Loss/Mask", loss_mask, totol_step)
             writer.add_scalar("Loss/coordinate", loss_coordinate, totol_step)
 
-            print (i ,loss_coordinate, loss_mask)
 
             if totol_step % config['display_freq'] == 0:
+                print (i ,loss_coordinate, loss_mask)
 
                 for i in range(mask.size()[1]):
                 #
@@ -89,7 +84,7 @@ def pretrain(config, writer, device_idxs=[0]):
                 writer.add_images("Target/U", utils.colorize(data["U"]), totol_step, dataformats="NCHW")
                 writer.add_images("Target/V", utils.colorize(data["V"]), totol_step, dataformats="NCHW")
                 writer.add_images("Input/body", body_sum, totol_step, dataformats="NCHW")
-                writer.add_images("Target/Image", data["image"], totol_step, dataformats="NCHW")
+                writer.add_images("Target/Image", inv_normalize(data["image"]), totol_step, dataformats="NCHW")
                 writer.add_images("coordinate/U", utils.colorize(torch.sum(coordinate[:,:24]*label_mask[:,:24], dim=1, keepdim=True)), totol_step, dataformats="NCHW")
                 writer.add_images("coordinate/V", utils.colorize(torch.sum(coordinate[:,24:]*label_mask[:,24:], dim=1, keepdim=True)), totol_step, dataformats="NCHW")
 
@@ -98,11 +93,8 @@ def pretrain(config, writer, device_idxs=[0]):
         model.module.save('latest')
         model.module.save(str(epoch+1))
 
-
-
         model.module.scheduler_G.step()
 
-    torch.cuda.empty_cache()
 
 
 if __name__ == '__main__':

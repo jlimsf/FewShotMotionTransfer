@@ -11,6 +11,7 @@ import os
 import yaml
 import random
 import numpy as np
+from torchvision import transforms
 
 torch.manual_seed(1)
 random.seed(2)
@@ -21,9 +22,9 @@ wandb.init(sync_tensorboard=True)
 
 def pretrain(config, writer, device_idxs=[0]):
 
-    data_loader = DataLoader(ReconstructDataSet(config['dataroot'], config),
+    data_loader = DataLoader(ReconstructDataSet(config['dataroot'], config, to_crop=True),
                 batch_size=config['batchsize'], num_workers=8,
-                pin_memory=True, shuffle=True)
+                pin_memory=False, shuffle=True, drop_last=True)
 
     device = torch.device("cuda:" + str(device_idxs[0]))
     model = Model(config, "pretrain_texture")
@@ -32,6 +33,12 @@ def pretrain(config, writer, device_idxs=[0]):
     model = model.to(device)
     model = DataParallel(model, device_idxs)
     model.train()
+
+    inv_normalize = transforms.Normalize(
+            mean=[-1, -1, -1],
+            std=[1/0.5, 1/0.5, 1/0.5]
+        )
+
     totol_step = 0
     for epoch in trange(config['epochs']):
         iterator = tqdm(enumerate(data_loader), total=len(data_loader))
@@ -57,19 +64,18 @@ def pretrain(config, writer, device_idxs=[0]):
 
                 writer.add_images("Texture/Target", texture_target[0].view(24*n, 3, h, w), totol_step, dataformats="NCHW")
                 writer.add_images("Texture/input", texture_input[0].view(24*n, 3, h, w), totol_step, dataformats="NCHW")
-                writer.add_images("Image/True_1", data["image"][0].unsqueeze(0) , totol_step, dataformats="NCHW")
-                writer.add_images("Image/True_2", data["image"][1].unsqueeze(0) , totol_step, dataformats="NCHW")
-                writer.add_images("Image/True_3", data["image"][2].unsqueeze(0) , totol_step, dataformats="NCHW")
-                writer.add_images("Image/True_4", data["image"][3].unsqueeze(0) , totol_step, dataformats="NCHW")
+                writer.add_images("Image/True_1", inv_normalize(data["image"])[0].unsqueeze(0) , totol_step, dataformats="NCHW")
+                writer.add_images("Image/True_2", inv_normalize(data["image"])[1].unsqueeze(0) , totol_step, dataformats="NCHW")
+                writer.add_images("Image/True_3", inv_normalize(data["image"])[2].unsqueeze(0) , totol_step, dataformats="NCHW")
+                writer.add_images("Image/True_4", inv_normalize(data["image"])[3].unsqueeze(0) , totol_step, dataformats="NCHW")
 
             totol_step+=1
 
+        print ("Saving")
         model.module.save('latest')
         model.module.save(str(epoch+1))
 
         model.module.scheduler_T.step()
-
-    torch.cuda.empty_cache()
 
 
 if __name__ == '__main__':

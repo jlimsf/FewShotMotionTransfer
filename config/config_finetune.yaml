@@ -1,9 +1,10 @@
-target_root: ./data-test/       # target root
-source_root: ./data-test/       # source root
-output_name: 300_finetune.mp4
+ # source root
+source_root: /data/FSMR_data/top_data/test/91-3003CN5S/        # target root
+target_root: /data/FSMR_data/top_data/train/81FyMPk-WIS/
+output_name: output.mp4
 output_folder: video
 checkpoint_path: /data/FSMR_data/checkpoint_fsmt/
-name: selfatt                           # name of checkpoint
+name: selfatt_25                           # name of checkpoint
 finetune_sample: 20
 
 batchsize: 1
@@ -16,7 +17,7 @@ lr_milestone:                           # steps of learning rate decay
 
 phase: finetune
 background: background.png
-pretrain_name: latest_train
+pretrain_name:  25_train
 
 resize: 256                             # size of image/pose
 texture_size: 128                       # size of texture

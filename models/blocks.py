@@ -1,4 +1,5 @@
 from torch import nn
+# from models.conditional_norms import ConditionalBatchNorm2d, ConditionalInstanceNorm2d
 
 
 class ResBlocks(nn.Module):
@@ -58,8 +59,10 @@ class Conv2dBlock(nn.Module):
         norm_dim = out_dim
         if norm == 'bn':
             self.norm = nn.BatchNorm2d(norm_dim)
+            # self.norm = ConditionalBatchNorm2d(norm_dim, num_classes=2)
         elif norm == 'in':
             self.norm = nn.InstanceNorm2d(norm_dim)
+            # self.norm = ConditionalInstanceNorm2d(norm_dim, num_classes=2)
         elif norm == 'none':
             self.norm = None
         else:
@@ -80,6 +83,7 @@ class Conv2dBlock(nn.Module):
         self.conv = nn.Conv2d(in_dim, out_dim, ks, st, bias=self.use_bias)
 
     def forward(self, x):
+
         if self.activation_first:
             if self.activation:
                 x = self.activation(x)

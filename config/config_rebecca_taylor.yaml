@@ -1,18 +1,19 @@
 dataroot: /data/FSMR_data/top_data/train/
 checkpoint_path: /data/FSMR_data/checkpoint_fsmt/
-name: selfatt_25
+name: ubc_checkpoints
 
-batchsize: 16
-epochs: 100
+batchsize: 12
+epochs: 15
 lr: 0.0002
 lr_T: 0.0002
 lr_D: 0.0002
 lr_milestone:
-  - 50
-  - 75
+  - 5
+  - 10
 
 phase: train
 pretrain_name: 25_train
+#latest_train_finetune_rebecca_taylor
 
 resize: 256
 texture_size: 128
@@ -20,7 +21,7 @@ hflip: false
 URange: 256
 VRange: 256
 
-display_freq: 250
+display_freq: 100
 
 body_nc: 26
 
@@ -43,7 +44,7 @@ Texture_G:
 
 num_texture: 8
 l_texture: 1.0
-l_coordinate: 20.0
+l_coordinate: 10.0
 l_mask: 0.8
 l_vgg: 1.0
 

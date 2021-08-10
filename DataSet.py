@@ -56,7 +56,7 @@ class BaseDataSet(dataset.Dataset):
 
 class ReconstructDataSet(BaseDataSet):
 
-    def __init__(self, root, config, list_name="image_list.txt"):
+    def __init__(self, root, config, to_crop = True, list_name="image_list.txt"):
         super(ReconstructDataSet, self).__init__(config)
         self.root = root
 
@@ -65,7 +65,9 @@ class ReconstructDataSet(BaseDataSet):
 
         self.filelist = []
         self.filelists = []
+        self.to_crop = to_crop
 
+        # self.folders = self.folders[:1]
 
         for i, folder in enumerate(self.folders):
 
@@ -77,29 +79,36 @@ class ReconstructDataSet(BaseDataSet):
                 self.filelist += filelist
                 self.filelists.append(filelist)
 
+
+
         self.size = self.config['resize']
         self.stage = self.config['phase']
 
     def __len__(self):
         return len(self.filelist)
 
-    def _transform(self, images, tolabel, crop_params, to_flip, return_tensor=True):
+    def _transform(self, images, tolabel, to_normalize, crop_params, to_flip, return_tensor=True):
 
         i,j,h,w = crop_params
-
+        normalize_function = transforms.Normalize((0.5,0.5,0.5), (0.5, 0.5, 0.5))
         #random resize crop
 
         if 'resize' in self.config:
             old_size, _ = images[0].size
             size = [self.config['resize'], self.config['resize']]
             resize = transforms.Resize(size, Image.NEAREST)
+
+            if self.to_crop == True:
+                coin = random.randint(1, 2)
+            else:
+                coin = 2 #do not crop
+
             for i in range(len(images)):
                 this_im = images[i]
-                # new_im = F.resized_crop(this_im, i, j, h, w, self.size, Image.BILINEAR)
-                # five_crops = F.five_crop(this_im, (self.size //2, self.size//2 ))
-                new_im = F.crop(this_im, i, j, h, w)
+                if coin == 1:
+                    this_im = F.crop(this_im, i, j, h, w)
 
-                resized = resize(new_im)
+                resized = resize(this_im)
                 # resized = new_im
                 # resized.save('{}.png'.format(i))
                 images[i] = resized
@@ -114,53 +123,11 @@ class ReconstructDataSet(BaseDataSet):
                     images[i] = self.label_to_tensor(images[i])
                 else:
                     images[i] = F.to_tensor(images[i])
+                    if to_normalize:
+                        images[i] = normalize_function(images[i])
             return images
         else:
             return images
-
-
-    # def get_params(self, img, scale, ratio):
-        # """Get parameters for ``crop`` for a random sized crop.
-        # Args:
-        #     img (PIL Image): Image to be cropped.
-        #     scale (tuple): range of size of the origin size cropped
-        #     ratio (tuple): range of aspect ratio of the origin aspect ratio cropped
-        # Returns:
-        #     tuple: params (i, j, h, w) to be passed to ``crop`` for a random
-        #         sized crop.
-        # """
-        # width, height = img.size
-        # area = height * width
-        #
-        # for attempt in range(10):
-        #     target_area = random.uniform(*scale) * area
-        #     log_ratio = (math.log(ratio[0]), math.log(ratio[1]))
-        #     aspect_ratio = math.exp(random.uniform(*log_ratio))
-        #
-        #     w = int(round(math.sqrt(target_area * aspect_ratio)))
-        #     h = int(round(math.sqrt(target_area / aspect_ratio)))
-        #
-        #     if 0 < w <= width and 0 < h <= height:
-        #         i = random.randint(0, height - h)
-        #         j = random.randint(0, width - w)
-        #
-        #         return i, j, h, w
-
-        # Fallback to central crop
-        # in_ratio = float(width) / float(height)
-        # if (in_ratio < min(ratio)):
-        #     w = width
-        #     h = int(round(w / min(ratio)))
-        # elif (in_ratio > max(ratio)):
-        #     h = height
-        #     w = int(round(h * max(ratio)))
-        # else:  # whole image
-        #     w = width
-        #     h = height
-        # i = (height - h) // 2
-        # j = (width - w) // 2
-        # print (i,j, h,w)
-        # return i, j, h, w
 
     def get_params(self, img, output_size):
         """Get parameters for ``crop`` for a random crop.
@@ -226,13 +193,8 @@ class ReconstructDataSet(BaseDataSet):
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
             IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
 
-
-            # i, j, h, w = self.get_params(image, scale=(0.2 , 1.0), ratio=(3. / 4., 4. / 3.))
-            # i, j, h, w = self.get_params(image, scale=(0.65 , 1.0), ratio=(1.0, 1.0 ))
             i,j,h,w = self.get_params(image, output_size=(self.size//2, self.size//2) )
-            # i,j,h,w = 0,0,256,256
-            # print (i,j,h,w)
-            # exit()
+
             if 'hflip' in self.config and self.config['hflip']:
                 flip_val = random.randint(0, 1)
             else:
@@ -240,11 +202,11 @@ class ReconstructDataSet(BaseDataSet):
 
 
             transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
-                                                    [False, False, True, True, True, True, True], crop_params = [i,j,h,w], to_flip = flip_val)
+                                                    tolabel=[False, False, True, True, True, True, True],
+                                                    to_normalize = [True, True, False, False, False, False, False],
+                                                    crop_params = [i,j,h,w], to_flip = flip_val)
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
-
-
 
             data["mask"] = data["IUV"][-1,:,:]
 
@@ -257,8 +219,6 @@ class ReconstructDataSet(BaseDataSet):
         if self.stage == 'pretrain_texture':
             data = {}
             textures = []
-            # texture = self.loader(os.path.join(folder, "texture", name + ".png"), mode="RGB")
-            # texture_tensor = F.to_tensor(texture)
 
             this_densepose_fp = os.path.join(folder, "densepose", name+".png")
             this_densepose_pil = self.loader(this_densepose_fp, mode='RGB')
@@ -267,18 +227,17 @@ class ReconstructDataSet(BaseDataSet):
             this_image_pil = self.loader(this_image_fp, mode="RGB")
             #extract texture on the fly
 
-            # i, j, h, w = self.get_params(this_image_pil, scale=(0.65 , 1.0), ratio=(3. / 4., 4. / 3.))
-            i,j,h,w = self.get_params(image, output_size=(self.size//2, self.size//2) )
-            # i,j,h,w = [1,1,25, 25]
+            if 'hflip' in self.config and self.config['hflip']:
+                flip_val = random.randint(0, 1)
+            else:
+                flip_val = 0
+
+            i,j,h,w = self.get_params(this_image_pil, output_size=(self.size//1.5, self.size//1.5) )
             [transforms_densepose, transforms_image] = \
                 self._transform([this_densepose_pil, this_image_pil],
-                [True, False], crop_params = [i,j,h,w], to_flip=0, return_tensor=False )
+                                [True, False], [False, True],
+                                crop_params = [i,j,h,w], to_flip=flip_val, return_tensor=False)
 
-            # print (i,j,h,w)
-            # print (transforms_image)
-            # transforms_image.save('debug_box_{}_{}_{}_{}.png'.format(i,j,h,w))
-            # print ("saving")
-            # exit()
             texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
             texture_tensor = F.to_tensor(texture_)
 
@@ -290,7 +249,8 @@ class ReconstructDataSet(BaseDataSet):
             texture_tensor = texture_tensor.contiguous().view(24 * 3, texture_size, texture_size)
             textures.append(texture_tensor)
 
-            data["image"] = self._transform([ this_image_pil], [ False], crop_params = [i,j,h,w], to_flip=0, return_tensor=True )[0]
+            data["image"] = self._transform([ this_image_pil], [ False], [True],
+                            crop_params = [i,j,h,w], to_flip=flip_val, return_tensor=True)[0]
 
             indexes = random.sample(list(range(0, len(self.filelists[label]))), self.config["num_texture"]-1)
             for i in indexes:
@@ -305,7 +265,7 @@ class ReconstructDataSet(BaseDataSet):
 
                 [transforms_densepose, transforms_image] = \
                     self._transform([this_densepose_pil, this_image_pil],
-                    [True, False], crop_params = [i,j,h,w], to_flip=0, return_tensor=False )
+                    [True, False], [False, True], crop_params = [i,j,h,w], to_flip=flip_val, return_tensor=False )
 
                 texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
                 texture_tensor = F.to_tensor(texture_)
@@ -334,7 +294,7 @@ class ReconstructDataSet(BaseDataSet):
 
                 [transforms_densepose, transforms_image] = \
                     self._transform([this_densepose_pil, this_image_pil],
-                    [True, False], crop_params = [i,j,h,w], to_flip=flip_val, return_tensor=False )
+                    [True, False], [False, False], crop_params = [i,j,h,w], to_flip=flip_val, return_tensor=False )
 
 
                 texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
@@ -349,14 +309,6 @@ class ReconstructDataSet(BaseDataSet):
             data["texture"] = texture_tensor.unsqueeze(0)
 
         data["class"] = label
-
-        # for k,v in data.items():
-        #     # v = torch.tensor([1, 2, np.nan])
-        #     if k == 'class': continue
-        #     if torch.isnan(v).any():
-        #         print ("Found nan in {} | {} | {} | {} |".format(folder, index, label, [i,j,h,w]))
-        #
-        #         exit()
 
         return data
 
@@ -480,6 +432,8 @@ class RT_ReconstructDataSet(BaseDataSet):
                         continue
                     else:
                         self.folders.append(subject_dir)
+
+        # self.folders = self.folders[:1]
 
         self.filelist = []
         self.filelists = []

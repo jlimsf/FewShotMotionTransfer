@@ -1,12 +1,17 @@
 import torch
 from torch import nn
 
+# from models.conditional_norms import ConditionalBatchNorm2d
 from models.blocks import Conv2dBlock, ResBlocks
 import torchvision.models as models
 
 
+
 class Geometry_Generator(nn.Module):
     def __init__(self, hp):
+        '''
+        enc_content and decoder only use normalization layers
+        '''
         super(Geometry_Generator, self).__init__()
         nf = hp['nf']
         down_class = hp['n_downs_class']
@@ -15,7 +20,7 @@ class Geometry_Generator(nn.Module):
         latent_dim = hp['latent_dim']
         content_input_dim = hp['input_dim']
         self.enc_class_model = ClassModelEncoder(down_class, 3, nf, latent_dim, norm='none', activ='relu', pad_type='reflect')
-        self.enc_content = ContentEncoder(down_content, n_res_blks, content_input_dim, nf, 'in', activ='relu', pad_type='reflect')
+        self.enc_content = ContentEncoder(down_content, n_res_blks, content_input_dim, nf, norm='in', activ='relu', pad_type='reflect')
         self.dec = Decoder(down_content, n_res_blks, self.enc_content.output_dim, latent_dim, nf*4, res_norm='in', activ='relu', pad_type='reflect')
         self.weight_model = WeightEncoder(down_class, content_input_dim, nf, latent_dim, norm='none', activ='relu', pad_type='reflect')
         self.att = SelfAttention()
@@ -63,6 +68,7 @@ class WeightEncoder(nn.Module):
 
     def forward(self, x):
         features = []
+
         for i, m in enumerate(self.model):
             x = m(x)
             if 1 <= i <= self.downs:
@@ -80,10 +86,12 @@ class ContentEncoder(nn.Module):
             self.model += [Conv2dBlock(dim, 2 * dim, 4, 2, 1, norm=norm, activation=activ, pad_type=pad_type)]
             dim *= 2
         self.model += [ResBlocks(n_res, dim, norm=norm, activation=activ, pad_type=pad_type)]
+
         self.model = nn.Sequential(*self.model)
         self.output_dim = dim
 
     def forward(self, x):
+
         return self.model(x)
 
 
@@ -120,7 +128,10 @@ class Decoder(nn.Module):
     def __init__(self, ups, n_res, dim, latent_dim, class_dim, res_norm, activ, pad_type):
         super(Decoder, self).__init__()
         self.model = []
-        self.model += [nn.Conv2d(dim + latent_dim, dim, 1, 1, 0)]
+        # self.model += [nn.Conv2d(dim + latent_dim, dim, 1, 1, 0)]
+        # print (self.model)
+        self.model += [Conv2dBlock(dim+latent_dim, dim , 1, 1, 0,activation = 'none')]
+
         self.model += [ResBlocks(n_res, dim, res_norm, activ, pad_type=pad_type)]
 
         self.mask = []
@@ -137,6 +148,7 @@ class Decoder(nn.Module):
 
         self.mask += [Conv2dBlock(dim, 25, 7, 1, 3, norm='none', activation='none', pad_type=pad_type)]
         self.coordinate += [Conv2dBlock(dim, 48, 7, 1, 3, norm='none', activation='none', pad_type=pad_type)]
+
         self.model = nn.Sequential(*self.model)
         self.mask = nn.ModuleList(self.mask)
         self.coordinate = nn.ModuleList(self.coordinate)
@@ -144,7 +156,9 @@ class Decoder(nn.Module):
     def forward(self, x, class_codes, class_features):
         _, _, h, w = x.size()
         class_codes = class_codes.expand(-1, -1, h, w)
-        latent = self.model(torch.cat((x, class_codes), dim=1))
+        decoder_model_input = torch.cat((x, class_codes), dim=1)
+        latent = self.model(decoder_model_input)
+
         mask = latent
         coordinate = latent
         for i in range(len(self.mask)):
@@ -178,7 +192,7 @@ class GatedConv2d(nn.Module):
 
 
 class Texture_Generator(nn.Module):
-    def __init__(self, config, norm_layer=nn.InstanceNorm2d, padding_type='reflect'):
+    def __init__(self, config, norm_layer=nn.BatchNorm2d, padding_type='reflect'):
         super().__init__()
         ngf = config['nf']
         input_nc = config['input_dim']

@@ -21,6 +21,8 @@ def create_finetune_set(root, samples=20):
     '''Sample images from the source person and create a small dataset for finetuning'''
     root = os.path.normpath(root)
     newroot = root+"_finetune"
+    # newroot = root
+    # # newroot = root
     if os.path.exists(newroot):
         os.system("rm -r "+newroot)
     folder = root
@@ -34,13 +36,18 @@ def create_finetune_set(root, samples=20):
     os.system("mkdir -p {}/segmentation".format(newfolder))
     filename = "finetune_samples.txt"
 
+    print ("Using image_list.txt to finetune")
+    if not os.path.exists(os.path.join(folder, filename)):
+        print ("Filename doesn't exist -using image_list.txt and finetuning on all samples.")
+        filename = 'image_list.txt'
+
     with open(os.path.join(folder, filename)) as f:
         filelist = f.readlines()
         filelist = filelist[:samples]
 
     for name in filelist:
         name = name.strip()
-        shutil.copyfile(os.path.join(folder, "image", name + ".png"), os.path.join(newfolder, "image", name + ".png"))
+        shutil.copyfile(os.path.join(folder, "image", name + ".png"), os.path.join(newfolder, "image", name + ".jpg"))
         shutil.copyfile(os.path.join(folder, "body", name + ".png"), os.path.join(newfolder, "body", name + ".png"))
         shutil.copyfile(os.path.join(folder, "densepose", name + ".png"), os.path.join(newfolder, "densepose", name + ".png"))
         shutil.copyfile(os.path.join(folder, "texture", name+".png"), os.path.join(newfolder, "texture", name+".png"))
@@ -49,6 +56,8 @@ def create_finetune_set(root, samples=20):
     with open(os.path.join(newfolder, "image_list.txt"), "w") as f:
         for name in filelist:
             f.write(name.strip()+"\n")
+
+    print (newroot)
 
     return newroot
 
@@ -76,6 +85,7 @@ def finetune(config, writer, device_idxs=[0]):
     model.background_start = model.background_start.to(device)
     model = DataParallel(model, device_idxs)
     model.train()
+
 
     totol_step = 0
     for epoch in trange(config['epochs']):
@@ -147,6 +157,8 @@ def inference(model, config, device_idxs=[0]):
     print ("Writing to folder: {}".format(folder))
     writer = cv2.VideoWriter(os.path.join(folder, config['output_name']), fourcc, 24, (image_size*3, image_size))
     print (config['output_name'])
+    print (os.path.join(folder, config['output_name']))
+
     with torch.no_grad():
         try:
             iterator = tqdm(enumerate(data_loader), total=len(data_loader))
