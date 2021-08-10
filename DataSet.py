@@ -193,7 +193,7 @@ class ReconstructDataSet(BaseDataSet):
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
             IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
 
-            i,j,h,w = self.get_params(image, output_size=(self.size//2, self.size//2) )
+            i,j,h,w = self.get_params(image, output_size=(self.size//1.5, self.size//1.5) )
 
             if 'hflip' in self.config and self.config['hflip']:
                 flip_val = random.randint(0, 1)
