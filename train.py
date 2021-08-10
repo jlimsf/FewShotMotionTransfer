@@ -144,13 +144,15 @@ def pretrain(config, writer, device_idxs=[0]):
 
             loss_G.backward()
             print (loss_G, losses['loss_G_L1'], losses['perceptual_loss'])
+            torchvision.utils.save_image(torchvision.utils.make_grid(data['image'], normalize=True), fp = 'image/{}_image.png'.format(i))
+            torchvision.utils.save_image(torchvision.utils.make_grid(data['class_image'], normalize=True), fp = 'class_image/{}_class_image.png'.format(i))
             if torch.isnan(loss_G):
                 print ("Nan")
                 print (losses)
                 print (data["class_image"].shape)
                 # normalized_im = inv_normalize['image']
-                torchvision.utils.save_image(torchvision.utils.make_grid(data['image'], normalize=True), fp = 'image.png')
-                torchvision.utils.save_image(torchvision.utils.make_grid(data['class_image'], normalize=True), fp = 'class_image.png')
+                torchvision.utils.save_image(torchvision.utils.make_grid(data['image'], normalize=True), fp = 'image/nan_{}_image.png'.format(i))
+                torchvision.utils.save_image(torchvision.utils.make_grid(data['class_image'], normalize=True), fp = 'class_image/nan_{}_class_image.png'.format(i))
                 exit()
 
             if i % 200 <= 100:
