@@ -1,8 +1,8 @@
-dataroot: /data/FSMR_data/top_data/train/
-checkpoint_path: /data/FSMR_data/checkpoint_fsmt/
+dataroot: /vid_data/FSMR_data/top_data/train/
+checkpoint_path: /vid_data/FSMR_data/checkpoint_fsmt/
 name: selfatt_cropping_
 
-batchsize: 4
+batchsize: 128
 epochs: 15
 
 
@@ -14,7 +14,7 @@ lr_milestone:
   - 20
 
 phase: train
-pretrain_name: latest
+pretrain_name: 9_train
 
 resize: 256
 texture_size: 128

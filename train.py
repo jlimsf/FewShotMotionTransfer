@@ -17,6 +17,8 @@ import random
 import numpy as np
 import wandb
 import torchvision
+
+
 # wandb.init(sync_tensorboard=True)
 
 
@@ -107,7 +109,7 @@ def pretrain(config, writer, device_idxs=[0]):
     totol_step = 0
 
     model = Model(config, "train")
-    model.prepare_for_train_RT(n_class=len(dataset.filelists))
+    model.prepare_for_train(n_class=len(dataset.filelists))
     model = model.to(device)
     model = DataParallel(model,  device_idxs)
     model.train()
@@ -121,9 +123,9 @@ def pretrain(config, writer, device_idxs=[0]):
             data_gpu = {key: item.to(device) for key, item in data.items()}
 
             if i % 200 <= 100:
-                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV_RT")
+                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV")
             else:
-                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_texture_RT")
+                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_texture")
 
             for key, item in losses.items():
                 losses[key] = item.mean()
@@ -131,7 +133,7 @@ def pretrain(config, writer, device_idxs=[0]):
 
             if i % 200 <= 100:
                 model.module.optimizer_G.zero_grad()
-                # model.module.optimizer_texture_stack.zero_grad()
+                model.module.optimizer_texture_stack.zero_grad()
                 # optimizer_G.zero_grad()
                 # optimizer_TS.zero_grad()
             else:
@@ -143,21 +145,22 @@ def pretrain(config, writer, device_idxs=[0]):
                      + losses.get("loss_mask", 0) * config['l_mask']
 
             loss_G.backward()
-            print (loss_G, losses['loss_G_L1'], losses['perceptual_loss'])
+
             torchvision.utils.save_image(torchvision.utils.make_grid(data['image'], normalize=True), fp = 'image/{}_image.png'.format(i))
             torchvision.utils.save_image(torchvision.utils.make_grid(data['class_image'], normalize=True), fp = 'class_image/{}_class_image.png'.format(i))
-            if torch.isnan(loss_G):
-                print ("Nan")
-                print (losses)
-                print (data["class_image"].shape)
-                # normalized_im = inv_normalize['image']
-                torchvision.utils.save_image(torchvision.utils.make_grid(data['image'], normalize=True), fp = 'image/nan_{}_image.png'.format(i))
-                torchvision.utils.save_image(torchvision.utils.make_grid(data['class_image'], normalize=True), fp = 'class_image/nan_{}_class_image.png'.format(i))
-                exit()
+            exit()
+            # if torch.isnan(loss_G):
+            #     print ("Nan")
+            #     print (losses)
+            #     print (data["class_image"].shape)
+            #     # normalized_im = inv_normalize['image']
+            #     torchvision.utils.save_image(torchvision.utils.make_grid(data['image'], normalize=True), fp = 'image/nan_{}_image.png'.format(i))
+            #     torchvision.utils.save_image(torchvision.utils.make_grid(data['class_image'], normalize=True), fp = 'class_image/nan_{}_class_image.png'.format(i))
+            #     exit()
 
             if i % 200 <= 100:
                 model.module.optimizer_G.step()
-                # model.module.optimizer_texture_stack.step()
+                model.module.optimizer_texture_stack.step()
                 # optimizer_G.step()
                 # optimizer_TS.step()
 
@@ -185,7 +188,7 @@ def pretrain(config, writer, device_idxs=[0]):
                 writer.add_images("Mask/Generate", (1 - mask[:,0]).unsqueeze(1), totol_step, dataformats='NCHW')
                 writer.add_images("Mask/Individual", utils.d_colorize(mask_label), totol_step, dataformats="NCHW")
                 writer.add_images("Mask/Target", data["foreground"], totol_step, dataformats="NCHW")
-                writer.add_images("Image/Fake", inv_normalize(torch.clamp(fake_image, 0, 1)), totol_step, dataformats="NCHW")
+                writer.add_images("Image/Fake", torch.clamp(inv_normalize(fake_image), 0, 1), totol_step, dataformats="NCHW")
                 writer.add_images("Image/True", inv_normalize(data["image"] * data["foreground"].expand_as(data["image"]).to(torch.float32)), totol_step, dataformats="NCHW")
                 writer.add_images("Input/body", body_sum, totol_step, dataformats="NCHW")
 

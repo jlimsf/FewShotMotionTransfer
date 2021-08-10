@@ -86,7 +86,7 @@ class Model(nn.Module):
         self.texture_list = [False for i in range(n_class)]
 
         # self.optimizer_texture_stack = torch.optim.Adam([self.texture_stack], lr=self.lr_T, betas=(0.5, 0.999))
-        self.optimizer_texture_stack = torch.optim.SGD([self.texture_stack], lr=self.lr_T *10,  momentum=0.9, nesterov =True)
+        self.optimizer_texture_stack = torch.optim.SGD([self.texture_stack], lr=0.001,  momentum=0.9, nesterov =True)
 
     def prepare_for_train_RT(self, n_class=10):
         self.prepare_for_pretrain()

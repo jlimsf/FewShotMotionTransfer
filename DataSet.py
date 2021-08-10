@@ -109,8 +109,6 @@ class ReconstructDataSet(BaseDataSet):
                     this_im = F.crop(this_im, i, j, h, w)
 
                 resized = resize(this_im)
-                # resized = new_im
-                # resized.save('{}.png'.format(i))
                 images[i] = resized
 
         if to_flip==1:
@@ -280,6 +278,7 @@ class ReconstructDataSet(BaseDataSet):
 
         if self.stage == 'train':
             indexes = random.sample(list(range(0, len(self.filelists[label]))), 1)
+            # texture_list = []
 
             for i in indexes:
 
@@ -294,7 +293,7 @@ class ReconstructDataSet(BaseDataSet):
 
                 [transforms_densepose, transforms_image] = \
                     self._transform([this_densepose_pil, this_image_pil],
-                    [True, False], [False, False], crop_params = [i,j,h,w], to_flip=flip_val, return_tensor=False )
+                    [True, False], [False, True], crop_params = [i,j,h,w], to_flip=flip_val, return_tensor=False )
 
 
                 texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
@@ -304,6 +303,7 @@ class ReconstructDataSet(BaseDataSet):
                 texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
                 texture_tensor = texture_tensor.permute(1, 3, 0, 2, 4)
                 texture_tensor = texture_tensor.contiguous().view(24*3, texture_size, texture_size)
+                # texture_list.append(texture_tensor)
 
 
             data["texture"] = texture_tensor.unsqueeze(0)
