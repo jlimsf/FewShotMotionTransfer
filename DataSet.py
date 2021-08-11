@@ -592,9 +592,9 @@ class TransferDataSet(BaseDataSet):
 
         transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground],
                                             [False, False, True, True, True, True])
-        img2 = transforms.ToPILImage(mode='RGB')(transform_output[0])
+        img2 = transforms.ToPILImage(mode='RGB')(transform_output[1])
         img2.save('debug_256.png')
-        
+
         exit()
         data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground"]
         data = dict(zip(data_name, transform_output))
