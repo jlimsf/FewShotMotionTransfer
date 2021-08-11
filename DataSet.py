@@ -597,7 +597,7 @@ class TransferDataSet(BaseDataSet):
         iuv_nearest = transform_nearest(IUV).save('IUV_nearest.png')
         iuv_bicubic = transform_nearest(IUV).save('IUV_bicubic.png')
         iuv_my_transform = transforms.ToPILImage(mode='RGB')(self._transform([IUV], [True],return_tensor=True)[0])
-        iuv_my_transfor.save("IUV_mine.png")
+        iuv_my_transform.save("IUV_mine.png")
 
         exit()
 
