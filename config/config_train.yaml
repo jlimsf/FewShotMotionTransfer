@@ -2,7 +2,7 @@ dataroot: /vid_data/FSMR_data/top_data/train/
 checkpoint_path: /vid_data/FSMR_data/checkpoint_fsmt/
 name: selfatt_cropping_
 
-batchsize: 128
+batchsize: 84
 epochs: 15
 
 
@@ -22,7 +22,7 @@ hflip: true
 URange: 256
 VRange: 256
 
-display_freq: 500
+display_freq: 250
 
 body_nc: 26
 

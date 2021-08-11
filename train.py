@@ -19,7 +19,7 @@ import wandb
 import torchvision
 
 
-# wandb.init(sync_tensorboard=True)
+wandb.init(sync_tensorboard=True)
 
 
 
@@ -109,7 +109,7 @@ def pretrain(config, writer, device_idxs=[0]):
     totol_step = 0
 
     model = Model(config, "train")
-    model.prepare_for_train(n_class=len(dataset.filelists))
+    model.prepare_for_train_RT(n_class=len(dataset.filelists))
     model = model.to(device)
     model = DataParallel(model,  device_idxs)
     model.train()
@@ -123,9 +123,9 @@ def pretrain(config, writer, device_idxs=[0]):
             data_gpu = {key: item.to(device) for key, item in data.items()}
 
             if i % 200 <= 100:
-                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV")
+                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV_RT")
             else:
-                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_texture")
+                mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_texture_RT")
 
             for key, item in losses.items():
                 losses[key] = item.mean()
@@ -133,7 +133,7 @@ def pretrain(config, writer, device_idxs=[0]):
 
             if i % 200 <= 100:
                 model.module.optimizer_G.zero_grad()
-                model.module.optimizer_texture_stack.zero_grad()
+                # model.module.optimizer_texture_stack.zero_grad()
                 # optimizer_G.zero_grad()
                 # optimizer_TS.zero_grad()
             else:
@@ -146,9 +146,9 @@ def pretrain(config, writer, device_idxs=[0]):
 
             loss_G.backward()
 
-            torchvision.utils.save_image(torchvision.utils.make_grid(data['image'], normalize=True), fp = 'image/{}_image.png'.format(i))
-            torchvision.utils.save_image(torchvision.utils.make_grid(data['class_image'], normalize=True), fp = 'class_image/{}_class_image.png'.format(i))
-            exit()
+            # torchvision.utils.save_image(torchvision.utils.make_grid(data['image'], normalize=True), fp = 'image/{}_image.png'.format(i))
+            # torchvision.utils.save_image(torchvision.utils.make_grid(data['class_image'], normalize=True), fp = 'class_image/{}_class_image.png'.format(i))
+
             # if torch.isnan(loss_G):
             #     print ("Nan")
             #     print (losses)
@@ -160,7 +160,7 @@ def pretrain(config, writer, device_idxs=[0]):
 
             if i % 200 <= 100:
                 model.module.optimizer_G.step()
-                model.module.optimizer_texture_stack.step()
+                # model.module.optimizer_texture_stack.step()
                 # optimizer_G.step()
                 # optimizer_TS.step()
 
