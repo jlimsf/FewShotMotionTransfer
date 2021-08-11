@@ -1,4 +1,4 @@
-from DataSet import ReconstructDataSet, TransferDataSet
+from DataSet import OriginalReconstructDataSet, TransferDataSet
 from torch.utils.data.dataloader import DataLoader
 from PIL import Image
 from tqdm import trange
@@ -13,7 +13,7 @@ import os, cv2, traceback, shutil
 import utils
 import yaml
 
-# import wandb
+import wandb
 # wandb.init(sync_tensorboard=True)
 
 
@@ -36,10 +36,6 @@ def create_finetune_set(root, samples=20):
     os.system("mkdir -p {}/segmentation".format(newfolder))
     filename = "finetune_samples.txt"
 
-    print ("Using image_list.txt to finetune")
-    if not os.path.exists(os.path.join(folder, filename)):
-        print ("Filename doesn't exist -using image_list.txt and finetuning on all samples.")
-        filename = 'image_list.txt'
 
     with open(os.path.join(folder, filename)) as f:
         filelist = f.readlines()
@@ -47,11 +43,11 @@ def create_finetune_set(root, samples=20):
 
     for name in filelist:
         name = name.strip()
-        shutil.copyfile(os.path.join(folder, "image", name + ".png"), os.path.join(newfolder, "image", name + ".jpg"))
+        shutil.copyfile(os.path.join(folder, "image", name + ".jpg"), os.path.join(newfolder, "image", name + ".jpg"))
         shutil.copyfile(os.path.join(folder, "body", name + ".png"), os.path.join(newfolder, "body", name + ".png"))
         shutil.copyfile(os.path.join(folder, "densepose", name + ".png"), os.path.join(newfolder, "densepose", name + ".png"))
         shutil.copyfile(os.path.join(folder, "texture", name+".png"), os.path.join(newfolder, "texture", name+".png"))
-        shutil.copyfile(os.path.join(folder, "segmentation", name+".png"), os.path.join(newfolder, "segmentation", name+".png"))
+        shutil.copyfile(os.path.join(folder, "segmentation", name+".jpg"), os.path.join(newfolder, "segmentation", name+".jpg"))
 
     with open(os.path.join(newfolder, "image_list.txt"), "w") as f:
         for name in filelist:
@@ -64,18 +60,20 @@ def create_finetune_set(root, samples=20):
 
 def finetune(config, writer, device_idxs=[0]):
 
+    # background = Image.open(os.path.join(config['source_root'], config['background']))
+    # image_size = config['resize']
+    # background = background.resize((image_size, image_size))
+    # background = torch.from_numpy(np.asarray(background).transpose((2, 0, 1)).astype(np.float32)/255).unsqueeze(0)
+    # print (background.shape)
+    # print (background)
+    background = torch.ones((1,3, config['resize'], config['resize']))
+
     config['phase'] = 'train'
     newroot = create_finetune_set(config['source_root'], config['finetune_sample'])
-    dataset = ReconstructDataSet(newroot, config, list_name="image_list.txt")
+
+    dataset = OriginalReconstructDataSet(newroot, config, list_name="image_list.txt")
     data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=16, pin_memory=True, shuffle=True, drop_last=False)
 
-    background = Image.open(os.path.join(config['source_root'], config['background']))
-
-
-    image_size = config['resize']
-    background = background.resize((image_size, image_size))
-    background = torch.from_numpy(np.asarray(background).transpose((2, 0, 1)).astype(np.float32)/255).unsqueeze(0)
-    background = torch.ones(background.size())
 
     model = Model(config, "finetune")
     iter_loader = iter(data_loader)
@@ -87,6 +85,8 @@ def finetune(config, writer, device_idxs=[0]):
     model.train()
 
 
+
+    print (len(dataset))
     totol_step = 0
     for epoch in trange(config['epochs']):
         iterator = tqdm(enumerate(data_loader), total=len(data_loader))
@@ -159,13 +159,14 @@ def inference(model, config, device_idxs=[0]):
     print (config['output_name'])
     print (os.path.join(folder, config['output_name']))
 
+
     with torch.no_grad():
         try:
             iterator = tqdm(enumerate(data_loader), total=len(data_loader))
             for i, data in iterator:
                 data_gpu = {key: item.to(device) for key, item in data.items()}
                 mask, fake_image, real_image, body, coordinate, texture = model(data_gpu, "inference")
-
+                
                 label = utils.d_colorize(data_gpu["body"]).cpu().numpy()
                 B, _, H, W = coordinate.size()
 
@@ -173,6 +174,8 @@ def inference(model, config, device_idxs=[0]):
                 fake_image = np.clip(fake_image.cpu().numpy(), 0, 1)
 
                 outputs = np.concatenate((real_image, label, fake_image), axis=3)
+                # outputs = fake_image
+
                 for output in outputs:
                     write_image = (output[::-1].transpose((1, 2, 0)) * 255).astype(np.uint8)
                     writer.write(write_image)

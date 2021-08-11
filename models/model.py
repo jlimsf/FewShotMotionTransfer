@@ -311,6 +311,8 @@ class Model(nn.Module):
         return prob_mask.detach(), pre_image.detach(), texture.detach(), input, coordinate.detach(), self.background, losses
 
     def inference(self, data):
+
+        
         input, class_input = self._get_input_pose(data)
 
         pose_code = self.generator.enc_content(input)
@@ -422,6 +424,7 @@ class Model(nn.Module):
         save_filename = '%s_net_%s.pth' % (epoch_label, network_label)
         print("load "+save_filename)
         print (epoch_label, network_label)
+        print (network_label)
         if not save_dir:
             save_dir = self.save_dir
         save_path = os.path.join(save_dir, save_filename)
@@ -432,17 +435,22 @@ class Model(nn.Module):
                 raise ('Generator must exist!')
         else:
             try:
+
                 network.load_state_dict(torch.load(save_path))
+
             except:
+
                 pretrained_dict = torch.load(save_path)
                 model_dict = network.state_dict()
+
                 try:
                     pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
                     network.load_state_dict(pretrained_dict)
-                    if self.opt.verbose:
-                        print(
-                            'Pretrained network %s has excessive layers; Only loading layers that are used' % network_label)
+
+                    print('Pretrained network %s has excessive layers; Only loading layers that are used' % network_label)
+
                 except:
+
                     print('Pretrained network %s has fewer layers; The following are not initialized:' % network_label)
                     for k, v in pretrained_dict.items():
                         if v.size() == model_dict[k].size():
@@ -452,6 +460,10 @@ class Model(nn.Module):
 
                     for k, v in model_dict.items():
                         if k not in pretrained_dict or v.size() != pretrained_dict[k].size():
+                            if k not in pretrained_dict:
+                                print ("{} not in pretrained_dict".format(k))
+                            else:
+                                print ("v.size() != pretrained_dict[{}].size()".format(k))
                             not_initialized.add(k.split('.')[0])
 
                     print(sorted(not_initialized))

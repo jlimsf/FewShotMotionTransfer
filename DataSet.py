@@ -181,14 +181,14 @@ class ReconstructDataSet(BaseDataSet):
         folder = self.folders[label]
 
         if self.stage == 'pretrain' or self.stage == 'train':
-            image = self.loader(os.path.join(folder, "image", name+".png"), mode="RGB")
+            image = self.loader(os.path.join(folder, "image", name+".jpg"), mode="RGB")
             body = self.loader(os.path.join(folder, "body", name+".png"), mode="L")
             foreground = self.loader(os.path.join(folder, "segmentation", name+".png"), mode="L")
 
             #Targets
             image_index = random.randrange(0, len(self.filelists[label]))
             image_name = self.filelists[label][image_index][0]
-            class_image = self.loader(os.path.join(folder, "image", image_name+".png"), mode="RGB")
+            class_image = self.loader(os.path.join(folder, "image", image_name+".jpg"), mode="RGB")
             class_foreground = self.loader(os.path.join(folder, "segmentation", image_name+".png"), mode="L")
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
             IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
@@ -288,7 +288,7 @@ class ReconstructDataSet(BaseDataSet):
                 this_densepose_fp = os.path.join(folder, "densepose", name+".png")
                 this_densepose_pil = self.loader(this_densepose_fp, mode='RGB')
 
-                this_image_fp = os.path.join(folder, 'image', name+".png")
+                this_image_fp = os.path.join(folder, 'image', name+".jpg")
                 this_image_pil = self.loader(this_image_fp, mode="RGB")
                 #extract texture on the fly
 
@@ -312,6 +312,111 @@ class ReconstructDataSet(BaseDataSet):
 
         return data
 
+class OriginalReconstructDataSet(BaseDataSet):
+
+    def __init__(self, root, config, list_name="image_list.txt"):
+        super(OriginalReconstructDataSet, self).__init__(config)
+        self.root = root
+
+        self.folders = glob.glob(os.path.join(root, "*"))
+        self.folders.sort()
+
+        self.filelist = []
+        self.filelists = []
+
+
+        for i, folder in enumerate(self.folders):
+
+            with open(os.path.join(folder, list_name)) as f:
+                filelist = f.readlines()
+                # filelist.sort(key=int)
+                filelist = [(x.strip(), i) for x in filelist]
+
+                self.filelist += filelist
+                self.filelists.append(filelist)
+
+        self.size = self.config['resize']
+        self.stage = self.config['phase']
+
+    def __len__(self):
+        return len(self.filelist)
+
+    def __getitem__(self, index):
+
+        label = self.filelist[index][1]
+        name = self.filelist[index][0]
+        folder = self.folders[label]
+
+        if self.stage == 'pretrain' or self.stage == 'train':
+            image = self.loader(os.path.join(folder, "image", name+".jpg"), mode="RGB")
+            body = self.loader(os.path.join(folder, "body", name+".png"), mode="L")
+            foreground = self.loader(os.path.join(folder, "segmentation", name+".jpg"), mode="L")
+            image_index = random.randrange(0, len(self.filelists[label]))
+            image_name = self.filelists[label][image_index][0]
+            class_image = self.loader(os.path.join(folder, "image", image_name+".jpg"), mode="RGB")
+            class_foreground = self.loader(os.path.join(folder, "segmentation", image_name+".jpg"), mode="L")
+            class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
+            IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
+
+            # transform_iuv = self._transform([IUV], [True] )[0]
+
+            # print (np.asarray(IUV).shape)
+            transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
+                                                    [False, False, True, True, True, True, True])
+            data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
+            data=dict(zip(data_name, transform_output))
+
+            # print (np.asarray(data["IUV"]).shape)
+            # print (self.stage)
+
+            data["mask"] = data["IUV"][-1,:,:]
+            data["foreground"] = (data["foreground"] > 0).to(torch.long)
+            data["U"] = data["IUV"][1,:,:].unsqueeze(0).to(torch.float32)/self.config["URange"]
+            data["V"] = data["IUV"][0,:,:].unsqueeze(0).to(torch.float32)/self.config["VRange"]
+            data.pop("IUV")
+
+
+        if self.stage == 'pretrain_texture':
+            data = {}
+            textures = []
+            texture = self.loader(os.path.join(folder, "texture", name + ".png"), mode="RGB")
+            texture_tensor = F.to_tensor(texture)
+            texture_size = texture_tensor.size()[1] // 4
+            texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
+            texture_tensor = texture_tensor.permute(1, 3, 0, 2, 4)
+            texture_tensor = texture_tensor
+            texture_tensor = texture_tensor.contiguous().view(24 * 3, texture_size, texture_size)
+            textures.append(texture_tensor)
+
+            indexes = random.sample(list(range(0, len(self.filelists[label]))), self.config["num_texture"]-1)
+            for i in indexes:
+                name = self.filelists[label][i][0]
+                texture = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
+                texture_tensor = F.to_tensor(texture)
+                texture_size = texture_tensor.size()[1]//4
+                texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
+                texture_tensor = texture_tensor.permute(1, 3, 0, 2, 4)
+                texture_tensor = texture_tensor.contiguous().view(24*3, texture_size, texture_size)
+                textures.append(texture_tensor)
+
+            data["texture"] = torch.stack(textures, dim=0)
+
+        if self.stage == 'train':
+            indexes = random.sample(list(range(0, len(self.filelists[label]))), 1)
+            for i in indexes:
+
+                name = self.filelists[label][i][0]
+                texture = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
+                texture_tensor = F.to_tensor(texture)
+                texture_size = texture_tensor.size()[1]//4
+                texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
+                texture_tensor = texture_tensor.permute(1, 3, 0, 2, 4)
+                texture_tensor = texture_tensor.contiguous().view(24*3, texture_size, texture_size)
+
+            data["texture"] = texture_tensor.unsqueeze(0)
+
+        data["class"] = label
+        return data
 
 class TransferDataSet(BaseDataSet):
 
@@ -328,7 +433,7 @@ class TransferDataSet(BaseDataSet):
 
         with open(os.path.join(src_root, list_name)) as f:
             filelist = f.readlines()
-            filelist.sort(key=int)
+            # filelist.sort(key=int)
             filelist = [x.strip() for x in filelist]
             self.src_filelist = filelist
 
@@ -374,6 +479,7 @@ class TransferDataSet(BaseDataSet):
 
         return images
 
+
     def __getitem__(self, index):
 
         name = self.filelist[index]
@@ -383,10 +489,12 @@ class TransferDataSet(BaseDataSet):
         image = self.loader(os.path.join(root, "image", name + ".png"), mode="RGB")
         body = self.loader(os.path.join(root, "body", name + ".png"), mode="L")
         foreground = self.loader(os.path.join(root, "segmentation", name + ".png"), mode="L")
-        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[0] + ".png"), mode="RGB")
-        class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".png"), mode="L")
+
+        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[0] + ".jpg"), mode="RGB")
+        class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".jpg"), mode="L")
         class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[0] + ".png"), mode="L")
-        transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground], [False, False, True, True, True, True])
+        transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground],
+                                            [False, False, True, True, True, True])
         data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground"]
         data = dict(zip(data_name, transform_output))
 
@@ -397,7 +505,9 @@ class TransferDataSet(BaseDataSet):
         indexes = random.sample(list(range(0, len(self.src_filelist))), self.config["num_texture"])
         for i in indexes:
             name = self.src_filelist[i]
+
             texture = self.loader(os.path.join(src_root, "texture", name + ".png"), mode="RGB")
+            texture.save("texture_{}.png".format(i))
             texture_tensor = F.to_tensor(texture)
             texture_size = texture_tensor.size()[1] // 4
             texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
@@ -433,7 +543,6 @@ class RT_ReconstructDataSet(BaseDataSet):
                     else:
                         self.folders.append(subject_dir)
 
-        # self.folders = self.folders[:1]
 
         self.filelist = []
         self.filelists = []

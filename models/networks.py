@@ -128,9 +128,9 @@ class Decoder(nn.Module):
     def __init__(self, ups, n_res, dim, latent_dim, class_dim, res_norm, activ, pad_type):
         super(Decoder, self).__init__()
         self.model = []
-        # self.model += [nn.Conv2d(dim + latent_dim, dim, 1, 1, 0)]
+        self.model += [nn.Conv2d(dim + latent_dim, dim, 1, 1, 0)]
         # print (self.model)
-        self.model += [Conv2dBlock(dim+latent_dim, dim , 1, 1, 0,activation = 'none')]
+        # self.model += [Conv2dBlock(dim+latent_dim, dim , 1, 1, 0,activation = 'none')]
 
         self.model += [ResBlocks(n_res, dim, res_norm, activ, pad_type=pad_type)]
 

@@ -25,9 +25,11 @@ args = parser.parse_args()
 root_paths = glob.glob(osp(args.root, "*"))
 
 for root_path in root_paths:
-    print(root_path)
+
     with open(osp(root_path, "image_list.txt")) as f:
         lines = f.readlines()
+
+
     lines = lines[:args.n_finetune]
     with open(osp(root_path, "finetune_samples.txt"), "w") as f:
         f.writelines(lines)
