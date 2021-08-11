@@ -596,13 +596,17 @@ class TransferDataSet(BaseDataSet):
         transform_bicubic =  transforms.Resize((256,256),interpolation=Image.BICUBIC)
         iuv_nearest = transform_nearest(IUV).save('IUV_nearest.png')
         iuv_bicubic = transform_nearest(IUV).save('IUV_bicubic.png')
+        iuv_my_transform = self._transform([IUV], [True],return_tensor=False)[0].save("IUV_mine.png")
 
+        exit()
 
         transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
                                             [False, False, True, True, True, True, True])
 
         data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
         data = dict(zip(data_name, transform_output))
+
+        # iuv_post_transform = transforms.ToPILImage(mode='RGB')(data["IUV"])
 
         for k,v in data.items():
             if k in ["image", "class_image", "IUV"]:
