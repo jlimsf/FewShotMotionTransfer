@@ -592,13 +592,16 @@ class TransferDataSet(BaseDataSet):
 
         transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground],
                                             [False, False, True, True, True, True])
-        img2 = transforms.ToPILImage(mode='RGB')(transform_output[1])
-        img2.save('debug_256_{}.png'.format(self.src_filelist[0]))
-        print (class_image)
 
-        exit()
         data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground"]
         data = dict(zip(data_name, transform_output))
+
+        for k,v in data.keys():
+            img2 = transforms.ToPILImage(mode='RGB')(v)
+            img2.save('debug_256_{}.png'.format(k))
+            print (k)
+
+        exit()
 
         data["foreground"] = (data["foreground"] > 0).to(torch.long)
 
