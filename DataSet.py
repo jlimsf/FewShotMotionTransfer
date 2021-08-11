@@ -9,7 +9,7 @@ import glob
 import random
 import imageio, cv2
 import math
-
+from io import BytesIO
 
 class BaseDataSet(dataset.Dataset):
 
@@ -331,12 +331,64 @@ class OriginalReconstructDataSet(BaseDataSet):
                 filelist = f.readlines()
                 # filelist.sort(key=int)
                 filelist = [(x.strip(), i) for x in filelist]
-
+                print (filelist)
                 self.filelist += filelist
                 self.filelists.append(filelist)
 
         self.size = self.config['resize']
         self.stage = self.config['phase']
+
+    def _transform(self, images, tolabel,  return_tensor=True):
+
+
+        if 'resize' in self.config:
+            old_size, _ = images[0].size
+            size = [self.config['resize'], self.config['resize']]
+            resize = transforms.Resize(size, Image.NEAREST)
+
+            for i in range(len(images)):
+                this_im = images[i]
+                resized = resize(this_im)
+                images[i] = resized
+
+        if return_tensor:
+            for i in range(len(images)):
+                if tolabel[i]:
+                    images[i] = self.label_to_tensor(images[i])
+                else:
+                    images[i] = F.to_tensor(images[i])
+
+            return images
+        else:
+            return images
+
+
+    def GetTexture(self, im, IUV):
+        '''
+        This indexing below is different than the original author's code
+        '''
+
+        U = IUV[:, :, 1]
+        V = IUV[:, :, 0]
+
+        Texture = np.zeros((24, 128, 128, 3), dtype=np.uint8)
+        for PartInd in range(1, 25):
+            tex = Texture[PartInd - 1, :, :, :].squeeze()
+            '''
+            This indexing below is different than the original author's code
+            '''
+            x, y = np.where(IUV[:, :, 2] == PartInd)
+            u = U[x, y] // 2
+            v = V[x, y] // 2
+            tex[u, v] = im[x, y]
+            Texture[PartInd - 1] = tex
+        TextureIm = np.zeros((128 * 4, 128 * 6, 3), dtype=np.uint8)
+        for i in range(len(Texture)):
+            x = i // 6 * 128
+            y = i % 6 * 128
+            TextureIm[x:x + 128, y:y + 128] = Texture[i]
+        return TextureIm
+
 
     def __len__(self):
         return len(self.filelist)
@@ -348,21 +400,23 @@ class OriginalReconstructDataSet(BaseDataSet):
         folder = self.folders[label]
 
         if self.stage == 'pretrain' or self.stage == 'train':
-            image = self.loader(os.path.join(folder, "image", name+".jpg"), mode="RGB")
+            image = self.loader(os.path.join(folder, "image", name+".png"), mode="RGB")
             body = self.loader(os.path.join(folder, "body", name+".png"), mode="L")
-            foreground = self.loader(os.path.join(folder, "segmentation", name+".jpg"), mode="L")
+            foreground = self.loader(os.path.join(folder, "segmentation", name+".png"), mode="L")
+
             image_index = random.randrange(0, len(self.filelists[label]))
             image_name = self.filelists[label][image_index][0]
-            class_image = self.loader(os.path.join(folder, "image", image_name+".jpg"), mode="RGB")
-            class_foreground = self.loader(os.path.join(folder, "segmentation", image_name+".jpg"), mode="L")
+            class_image = self.loader(os.path.join(folder, "image", image_name+".png"), mode="RGB")
+            class_foreground = self.loader(os.path.join(folder, "segmentation", image_name+".png"), mode="L")
+
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
             IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
 
-            # transform_iuv = self._transform([IUV], [True] )[0]
 
-            # print (np.asarray(IUV).shape)
             transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
                                                     [False, False, True, True, True, True, True])
+
+
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
 
@@ -406,8 +460,23 @@ class OriginalReconstructDataSet(BaseDataSet):
             for i in indexes:
 
                 name = self.filelists[label][i][0]
-                texture = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
-                texture_tensor = F.to_tensor(texture)
+
+                this_densepose_fp = os.path.join(folder, "densepose", name+".png")
+                this_densepose_pil = self.loader(this_densepose_fp, mode='RGB')
+
+                this_image_fp = os.path.join(folder, 'image', name+".png")
+                this_image_pil = self.loader(this_image_fp, mode="RGB")
+                #extract texture on the fly
+
+                [transforms_densepose, transforms_image] = \
+                    self._transform([this_densepose_pil, this_image_pil],
+                    [True, False], return_tensor=False )
+
+
+                texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
+                texture_tensor = F.to_tensor(texture_)
+
+                # texture_tensor = F.to_tensor(texture)
                 texture_size = texture_tensor.size()[1]//4
                 texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
                 texture_tensor = texture_tensor.permute(1, 3, 0, 2, 4)
@@ -440,6 +509,7 @@ class TransferDataSet(BaseDataSet):
         self.size = self.config['resize']
         self.stage = self.config['phase']
 
+
     def __len__(self):
         return len(self.filelist)
 
@@ -454,31 +524,57 @@ class TransferDataSet(BaseDataSet):
         else:
             return (F.to_tensor(label) * 255.0).type(torch.long)
 
-    def _transform(self, images, tolabel):
+    def _transform(self, images, tolabel,  return_tensor=True):
+
+
         if 'resize' in self.config:
             old_size, _ = images[0].size
-            size = [self.config['resize'], self.config['resize']]
+            size = [self.size, self.size]
             resize = transforms.Resize(size, Image.NEAREST)
-            for i in range(len(images)):
-                images[i] = resize(images[i])
 
-        if 'hflip' in self.config and self.config['hflip']:
-            flip = random.randint(0, 1)
+            for i in range(len(images)):
+                this_im = images[i]
+                resized = resize(this_im)
+                print (resized)
+                images[i] = resized
+
+        if return_tensor:
+            for i in range(len(images)):
+                if tolabel[i]:
+                    images[i] = self.label_to_tensor(images[i])
+                else:
+                    images[i] = F.to_tensor(images[i])
+
+            return images
         else:
-            flip = 0
+            return images
 
-        if flip == 1:
-            for i in range(len(images)):
-                images[i] = F.hflip(images[i])
 
-        for i in range(len(images)):
-            if tolabel[i]:
-                images[i] = self.label_to_tensor(images[i])
-            else:
-                images[i] = F.to_tensor(images[i])
+    def GetTexture(self, im, IUV):
+        '''
+        This indexing below is different than the original author's code
+        '''
 
-        return images
+        U = IUV[:, :, 1]
+        V = IUV[:, :, 0]
 
+        Texture = np.zeros((24, 128, 128, 3), dtype=np.uint8)
+        for PartInd in range(1, 25):
+            tex = Texture[PartInd - 1, :, :, :].squeeze()
+            '''
+            This indexing below is different than the original author's code
+            '''
+            x, y = np.where(IUV[:, :, 2] == PartInd)
+            u = U[x, y] // 2
+            v = V[x, y] // 2
+            tex[u, v] = im[x, y]
+            Texture[PartInd - 1] = tex
+        TextureIm = np.zeros((128 * 4, 128 * 6, 3), dtype=np.uint8)
+        for i in range(len(Texture)):
+            x = i // 6 * 128
+            y = i % 6 * 128
+            TextureIm[x:x + 128, y:y + 128] = Texture[i]
+        return TextureIm
 
     def __getitem__(self, index):
 
@@ -489,12 +585,17 @@ class TransferDataSet(BaseDataSet):
         image = self.loader(os.path.join(root, "image", name + ".png"), mode="RGB")
         body = self.loader(os.path.join(root, "body", name + ".png"), mode="L")
         foreground = self.loader(os.path.join(root, "segmentation", name + ".png"), mode="L")
+        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[0] + ".png"), mode="RGB")
 
-        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[0] + ".jpg"), mode="RGB")
-        class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".jpg"), mode="L")
+        class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".png"), mode="L")
         class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[0] + ".png"), mode="L")
+
         transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground],
                                             [False, False, True, True, True, True])
+        img2 = transforms.ToPILImage(mode='RGB')(transform_output[0])
+        img2.save('debug_256.png')
+        
+        exit()
         data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground"]
         data = dict(zip(data_name, transform_output))
 
@@ -506,8 +607,24 @@ class TransferDataSet(BaseDataSet):
         for i in indexes:
             name = self.src_filelist[i]
 
-            texture = self.loader(os.path.join(src_root, "texture", name + ".png"), mode="RGB")
-            texture_tensor = F.to_tensor(texture)
+
+            this_densepose_fp = os.path.join(src_root, "densepose", name+".png")
+            this_densepose_pil = self.loader(this_densepose_fp, mode='RGB')
+
+            this_image_fp = os.path.join(src_root, 'image', name+".png")
+            this_image_pil = self.loader(this_image_fp, mode="RGB")
+            #extract texture on the fly
+
+            [transforms_densepose, transforms_image] = \
+                self._transform([this_densepose_pil, this_image_pil],
+                [True, False], return_tensor=False )
+
+
+            texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
+            texture_tensor = F.to_tensor(texture_)
+
+            # texture = self.loader(os.path.join(src_root, "texture", name + ".png"), mode="RGB")
+            # texture_tensor = F.to_tensor(texture)
             texture_size = texture_tensor.size()[1] // 4
             texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
             texture_tensor = texture_tensor.permute(1, 3, 0, 2, 4)
@@ -717,19 +834,12 @@ class ValidationTransferDataSet(BaseDataSet):
         src_root = self.src_root
 
         image = self.loader(os.path.join(root, "image", name + ".png"), mode="RGB")
-        # print (image)
         body = self.loader(os.path.join(root, "body", name + ".png"), mode="L")
-        # print (body)
         foreground = self.loader(os.path.join(root, "segmentation", name + ".png"), mode="L")
-        # print (foreground)
         class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[0] + ".jpg"), mode="RGB")
-        # print (class_image)
         class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".jpg"), mode="L")
-        # print (class_foreground)
         class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[0] + ".png"), mode="L")
-        # print (class_body)
         transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground], [False, False, True, True, True, True])
-        # print (transform_output)
 
         data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground"]
         data = dict(zip(data_name, transform_output))

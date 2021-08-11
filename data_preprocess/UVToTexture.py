@@ -42,7 +42,7 @@ for mode in os.listdir(args.root):
 
 for root in tqdm(folders):
 
-    image_path_list = [x for x in os.listdir(osp(root, "image")) if x.endswith("jpg")]
+    image_path_list = [x for x in os.listdir(osp(root, "image")) if x.endswith("png")]
 
     mask = np.zeros((128*4, 128*6), dtype=np.float32) + 1e-8
     Textures = np.zeros((128*4, 128*6, 3), dtype=np.float32)

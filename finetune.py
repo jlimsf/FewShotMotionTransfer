@@ -43,11 +43,11 @@ def create_finetune_set(root, samples=20):
 
     for name in filelist:
         name = name.strip()
-        shutil.copyfile(os.path.join(folder, "image", name + ".jpg"), os.path.join(newfolder, "image", name + ".jpg"))
+        shutil.copyfile(os.path.join(folder, "image", name + ".png"), os.path.join(newfolder, "image", name + ".png"))
         shutil.copyfile(os.path.join(folder, "body", name + ".png"), os.path.join(newfolder, "body", name + ".png"))
         shutil.copyfile(os.path.join(folder, "densepose", name + ".png"), os.path.join(newfolder, "densepose", name + ".png"))
-        shutil.copyfile(os.path.join(folder, "texture", name+".png"), os.path.join(newfolder, "texture", name+".png"))
-        shutil.copyfile(os.path.join(folder, "segmentation", name+".jpg"), os.path.join(newfolder, "segmentation", name+".jpg"))
+        # shutil.copyfile(os.path.join(folder, "texture", name+".png"), os.path.join(newfolder, "texture", name+".png"))
+        shutil.copyfile(os.path.join(folder, "segmentation", name+".png"), os.path.join(newfolder, "segmentation", name+".png"))
 
     with open(os.path.join(newfolder, "image_list.txt"), "w") as f:
         for name in filelist:
@@ -72,7 +72,8 @@ def finetune(config, writer, device_idxs=[0]):
     newroot = create_finetune_set(config['source_root'], config['finetune_sample'])
 
     dataset = OriginalReconstructDataSet(newroot, config, list_name="image_list.txt")
-    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=16, pin_memory=True, shuffle=True, drop_last=False)
+
+    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=8, pin_memory=True, shuffle=True, drop_last=False)
 
 
     model = Model(config, "finetune")
@@ -83,8 +84,6 @@ def finetune(config, writer, device_idxs=[0]):
     model.background_start = model.background_start.to(device)
     model = DataParallel(model, device_idxs)
     model.train()
-
-
 
     print (len(dataset))
     totol_step = 0
@@ -144,7 +143,7 @@ def inference(model, config, device_idxs=[0]):
     config['phase'] = 'inference'
     config['hflip'] = False
     dataset = TransferDataSet(config['target_root'], config['source_root'], config)
-    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=4, pin_memory=True, shuffle=False)
+    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=0, pin_memory=True, shuffle=False)
 
     device = torch.device("cuda:" + str(device_idxs[0]))
     image_size = config['resize']
@@ -166,13 +165,14 @@ def inference(model, config, device_idxs=[0]):
             for i, data in iterator:
                 data_gpu = {key: item.to(device) for key, item in data.items()}
                 mask, fake_image, real_image, body, coordinate, texture = model(data_gpu, "inference")
-                
+
                 label = utils.d_colorize(data_gpu["body"]).cpu().numpy()
                 B, _, H, W = coordinate.size()
 
                 real_image = data['image'].cpu().numpy()
+                # print (np.unique(fake_image.cpu().numpy()))
                 fake_image = np.clip(fake_image.cpu().numpy(), 0, 1)
-
+                # fake_image = fake_image.cpu().numpy()
                 outputs = np.concatenate((real_image, label, fake_image), axis=3)
                 # outputs = fake_image
 

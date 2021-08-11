@@ -6,15 +6,14 @@ import argparse
 ct = 0
 
 def generate_list(root_path):
-    files = glob.glob(osp(root_path, "image", "*.jpg"))
+    files = glob.glob(osp(root_path, "image", "*.png"))
     with open(osp(root_path, "image_list.txt"), "w") as f:
 
         for file in files:
 
-            name = os.path.basename(file).replace(".jpg", "")
+            name = os.path.basename(file).replace(".png", "")
 
-            if os.path.exists(osp(root_path, "texture", name + ".png")) and \
-               os.path.exists(osp(root_path, "segmentation", name + ".jpg")) and \
+            if os.path.exists(osp(root_path, "segmentation", name + ".png")) and \
                os.path.exists(osp(root_path, "body", name + ".png")) and \
                os.path.exists(osp(root_path, "densepose", name + ".png")):
                 f.write(name + "\n")

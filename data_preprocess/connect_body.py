@@ -41,7 +41,7 @@ def create_pose(root_path):
     height = frame.shape[0]
     width = frame.shape[1]
     for j, image_path in enumerate(images_path):
-        if image_path.find("jpg") == -1:
+        if image_path.find("png") == -1:
             # print ("con 4")
             continue
         name = image_path[:-4]
