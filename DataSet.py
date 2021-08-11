@@ -589,17 +589,23 @@ class TransferDataSet(BaseDataSet):
 
         class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".png"), mode="L")
         class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[0] + ".png"), mode="L")
+        IUV = self.loader(os.path.join(src_root, "densepose", self.src_filelist[0]+".png"), mode='RGB')
 
-        transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground],
-                                            [False, False, True, True, True, True])
+        transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
+                                            [False, False, True, True, True, True, True])
 
-        data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground"]
+        data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
         data = dict(zip(data_name, transform_output))
 
-        for k,v in data.keys():
-            img2 = transforms.ToPILImage(mode='RGB')(v)
-            img2.save('debug_256_{}.png'.format(k))
-            print (k)
+        for k,v in data.items():
+            if k in ["image", "class_image", "IUV"]:
+
+                img2 = transforms.ToPILImage(mode='RGB')(v)
+                img2.save('debug_256_{}.png'.format(k))
+            # if k in [ "foreground", "class_foreground"]:
+            #     img2 = transforms.ToPILImage()(v)
+            #     img2.save('debug_256_{}.png'.format(k))
+
 
         exit()
 
