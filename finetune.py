@@ -172,7 +172,7 @@ def inference(model, config, device_idxs=[0]):
                 fg = data['foreground'].cpu().numpy()
                 cfg = data['class_foreground'].cpu().numpy()
                 class_body = utils.d_colorize(data_gpu["class_body"]).cpu().numpy()
-                class_body_full = utils.d_colorize(data_gpu["class_body_raw"]).squeeze(0).cpu().numpy()
+                class_body_full = (utils.d_colorize(data_gpu["class_body_raw"]).squeeze(0).cpu().numpy().transpose(1,2,0) * 255).astype(np.uint8)
 
                 print (class_body_full)
                 print (class_body_full.shape)
