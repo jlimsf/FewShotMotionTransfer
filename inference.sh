@@ -6,7 +6,7 @@
 
 python -W ignore finetune.py config/config_finetune.yaml \
               --target /data/FSMR_data/top_data/train/91-kqBbzDIS \
-              --source debugging/000019B126_debug_256/sample1 \
+              --source debugging/000019B126_debug/sample1 \
               --epochs 0 \
               --device 0
 
