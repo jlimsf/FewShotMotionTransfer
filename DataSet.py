@@ -482,12 +482,10 @@ class OriginalReconstructDataSet(BaseDataSet):
 
 
                 texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
-                print (texture_.shape)
-                cv2.imwrite('texture_{}.png'.format(time_str), texture_ )
-                exit()
-                texture_tensor = F.to_tensor(texture_)
 
-                # texture_tensor = F.to_tensor(texture)
+                # cv2.imwrite('texture_{}.png'.format(time_str), texture_ )
+                # exit()
+                texture_tensor = F.to_tensor(texture_)
                 texture_size = texture_tensor.size()[1]//4
                 texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
                 texture_tensor = texture_tensor.permute(1, 3, 0, 2, 4)
@@ -600,23 +598,20 @@ class TransferDataSet(BaseDataSet):
         class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".png"), mode="L")
         class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[0] + ".png"), mode="L")
         IUV = self.loader(os.path.join(src_root, "densepose", self.src_filelist[0]+".png"), mode='RGB')
-        # IUV.save("IUV.png")
-        #
-        # transform_nearest =  transforms.Resize((256,256),interpolation=Image.NEAREST)
-        # transform_bicubic =  transforms.Resize((256,256),interpolation=Image.NEAREST)
-        # iuv_nearest = transform_nearest(IUV).save('IUV_nearest.png')
-        # iuv_bicubic = transform_nearest(IUV).save('IUV_bicubic.png')
-        # iuv_my_transform = self._transform([IUV], [True])[0]
-        #
-        # # iuv_my_transform.save("IUV_mine.png")
-        #
-        # exit()
+
 
         transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
                                             [False, False, True, True, True, True, True])
 
         data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
         data = dict(zip(data_name, transform_output))
+
+        PILtoIM = transforms.ToPILImage(mode='RGB')
+        time_str = str(datetime.datetime.now())
+        # print(densepose_fp)
+        PILtoIM(data['IUV']).save('{}_iuv.png'.format(time_str))
+        PILtoIM(data['class_image']).save('{}_class_image.png'.format(time_str))
+        exit()
 
         # iuv_post_transform = transforms.ToPILImage(mode='RGB')(data["IUV"])
 
