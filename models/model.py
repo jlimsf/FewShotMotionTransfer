@@ -104,12 +104,12 @@ class Model(nn.Module):
         self.prepare_for_train()
         with torch.no_grad():
             part_texture = data["texture"][:self.config['num_texture']]
-            print (part_texture.shape)
             b, n, c, h, w = part_texture.size()
             part_texture = part_texture.view(b * n, c, h, w)
             part_texture = torch.nn.functional.interpolate(part_texture, (self.config['texture_size'], self.config['texture_size']))
             part_texture = part_texture.view(1, b*n, c, self.config['texture_size'], self.config['texture_size'])
             texture = self.texture_generator.get_feat(part_texture)
+
 
         self.texture_stack = nn.Parameter(texture)
 
@@ -314,7 +314,7 @@ class Model(nn.Module):
 
     def inference(self, data):
 
-        
+
         input, class_input = self._get_input_pose(data)
 
         pose_code = self.generator.enc_content(input)

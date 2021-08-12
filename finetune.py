@@ -70,11 +70,8 @@ def finetune(config, writer, device_idxs=[0]):
 
     config['phase'] = 'train'
     newroot = create_finetune_set(config['source_root'], config['finetune_sample'])
-
     dataset = OriginalReconstructDataSet(newroot, config, list_name="image_list.txt")
-
-    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=8, pin_memory=True, shuffle=True, drop_last=False)
-
+    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=0, pin_memory=True, shuffle=True, drop_last=False)
 
     model = Model(config, "finetune")
     iter_loader = iter(data_loader)
@@ -84,6 +81,9 @@ def finetune(config, writer, device_idxs=[0]):
     model.background_start = model.background_start.to(device)
     model = DataParallel(model, device_idxs)
     model.train()
+
+    exit()
+
 
     print (len(dataset))
     totol_step = 0
@@ -143,7 +143,7 @@ def inference(model, config, device_idxs=[0]):
     config['phase'] = 'inference'
     config['hflip'] = False
     dataset = TransferDataSet(config['target_root'], config['source_root'], config)
-    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=0, pin_memory=True, shuffle=False)
+    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=4, pin_memory=True, shuffle=False)
 
     device = torch.device("cuda:" + str(device_idxs[0]))
     image_size = config['resize']

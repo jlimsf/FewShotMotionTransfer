@@ -10,6 +10,7 @@ import random
 import imageio, cv2
 import math
 from io import BytesIO
+import datetime
 
 class BaseDataSet(dataset.Dataset):
 
@@ -410,9 +411,12 @@ class OriginalReconstructDataSet(BaseDataSet):
             class_foreground = self.loader(os.path.join(folder, "segmentation", image_name+".png"), mode="L")
 
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
-            IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
+            densepose_fp =  os.path.join(folder, "densepose", name+".png")
+            IUV = self.loader(densepose_fp, mode="RGB")
 
-
+            # print (np.unique(np.asarray(IUV)[:,:,0]))
+            # print (np.unique(np.asarray(IUV)[:,:,1]))
+            # print (np.unique(np.asarray(IUV)[:,:,2]))
             transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
                                                     [False, False, True, True, True, True, True])
 
@@ -420,8 +424,12 @@ class OriginalReconstructDataSet(BaseDataSet):
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
 
-            # print (np.asarray(data["IUV"]).shape)
-            # print (self.stage)
+            PILtoIM = transforms.ToPILImage(mode='RGB')
+            time_str = str(datetime.datetime.now())
+            print(densepose_fp)
+            PILtoIM(data['class_image']).save('{}_image.png'.format(time_str))
+            PILtoIM(data['IUV']).save('{}_iuv.png'.format(time_str))
+            exit()
 
             data["mask"] = data["IUV"][-1,:,:]
             data["foreground"] = (data["foreground"] > 0).to(torch.long)
@@ -535,7 +543,6 @@ class TransferDataSet(BaseDataSet):
             for i in range(len(images)):
                 this_im = images[i]
                 resized = resize(this_im)
-                print (resized)
                 images[i] = resized
 
         if return_tensor:
@@ -590,16 +597,17 @@ class TransferDataSet(BaseDataSet):
         class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".png"), mode="L")
         class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[0] + ".png"), mode="L")
         IUV = self.loader(os.path.join(src_root, "densepose", self.src_filelist[0]+".png"), mode='RGB')
-        IUV.save("IUV.png")
-
-        transform_nearest =  transforms.Resize((256,256),interpolation=Image.NEAREST)
-        transform_bicubic =  transforms.Resize((256,256),interpolation=Image.BICUBIC)
-        iuv_nearest = transform_nearest(IUV).save('IUV_nearest.png')
-        iuv_bicubic = transform_nearest(IUV).save('IUV_bicubic.png')
-        iuv_my_transform = transforms.ToPILImage(mode='RGB')(self._transform([IUV], [True])[0])
-        iuv_my_transform.save("IUV_mine.png")
-
-        exit()
+        # IUV.save("IUV.png")
+        #
+        # transform_nearest =  transforms.Resize((256,256),interpolation=Image.NEAREST)
+        # transform_bicubic =  transforms.Resize((256,256),interpolation=Image.NEAREST)
+        # iuv_nearest = transform_nearest(IUV).save('IUV_nearest.png')
+        # iuv_bicubic = transform_nearest(IUV).save('IUV_bicubic.png')
+        # iuv_my_transform = self._transform([IUV], [True])[0]
+        #
+        # # iuv_my_transform.save("IUV_mine.png")
+        #
+        # exit()
 
         transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
                                             [False, False, True, True, True, True, True])
@@ -609,17 +617,17 @@ class TransferDataSet(BaseDataSet):
 
         # iuv_post_transform = transforms.ToPILImage(mode='RGB')(data["IUV"])
 
-        for k,v in data.items():
-            if k in ["image", "class_image", "IUV"]:
-
-                img2 = transforms.ToPILImage(mode='RGB')(v)
-                img2.save('debug_256_{}.png'.format(k))
-            # if k in [ "foreground", "class_foreground"]:
-            #     img2 = transforms.ToPILImage()(v)
-            #     img2.save('debug_256_{}.png'.format(k))
-
-
-        exit()
+        # for k,v in data.items():
+        #     if k in ["image", "class_image", "IUV"]:
+        #
+        #         img2 = transforms.ToPILImage(mode='RGB')(v)
+        #         img2.save('debug_256_{}.png'.format(k))
+        #     # if k in [ "foreground", "class_foreground"]:
+        #     #     img2 = transforms.ToPILImage()(v)
+        #     #     img2.save('debug_256_{}.png'.format(k))
+        #
+        #
+        # exit()
 
         data["foreground"] = (data["foreground"] > 0).to(torch.long)
 

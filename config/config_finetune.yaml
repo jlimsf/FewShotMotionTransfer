@@ -47,7 +47,7 @@ Texture_G:
   input_dim: 72
   output_dim: 72
 
-num_texture: 3
+num_texture: 1
 
 #Constraint
 l_texture: 0.0
