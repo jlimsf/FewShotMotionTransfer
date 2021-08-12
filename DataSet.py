@@ -483,7 +483,7 @@ class OriginalReconstructDataSet(BaseDataSet):
 
                 texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
                 print (texture_.shape)
-                cv2.imwrite(texture_, 'texture_{}.png'.format(time_str) )
+                cv2.imwrite('texture_{}.png'.format(time_str), texture_ )
                 exit()
                 texture_tensor = F.to_tensor(texture_)
 
