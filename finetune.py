@@ -176,9 +176,11 @@ def inference(model, config, device_idxs=[0]):
 
                 import datetime
                 time_str = str(datetime.datetime.now())
-                print (fake_image.shape)
-                pil_image_temp = Image.fromarray(np.squeeze(fake_image).astype('uint8'), 'RGB')
+                temp_fake_im = (np.squeeze(fake_image).transpose((1, 2, 0)) * 255).astype(np.uint8)
+                print (temp_fake_im)
+                pil_image_temp = Image.fromarray(temp_fake_im, 'RGB')
                 pil_image_temp.save("PIL_IMAGE_{}.png".format(time_str))
+                print ("Saved")
                 exit()
                 for output in outputs:
                     write_image = (output[::-1].transpose((1, 2, 0)) * 255).astype(np.uint8)
