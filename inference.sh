@@ -11,7 +11,7 @@ python -W ignore finetune.py config/config_finetune.yaml \
               --device 0
 
 
-# aws s3 cp video/ubc_checkpoints/output.mp4 s3://cqdatascience/john/
+# aws s3 cp video/ubc_checkpoints/debugging_sanity_check.mp4 s3://cqdatascience/john/
 
 # python -W ignore finetune.py config/config_finetune.yaml \
 #               --target /data/FSMR_data/top_data/train/91-kqBbzDIS \

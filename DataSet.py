@@ -414,9 +414,11 @@ class OriginalReconstructDataSet(BaseDataSet):
             densepose_fp =  os.path.join(folder, "densepose", name+".png")
             IUV = self.loader(densepose_fp, mode="RGB")
 
-            # print (np.unique(np.asarray(IUV)[:,:,0]))
-            # print (np.unique(np.asarray(IUV)[:,:,1]))
-            # print (np.unique(np.asarray(IUV)[:,:,2]))
+            print (np.unique(np.asarray(class_foreground), return_counts=True))
+            print (np.unique(np.asarray(foreground),return_counts=True))
+            print (os.path.join(folder, "segmentation", image_name+".png"))
+            print (os.path.join(folder, "segmentation", name+".png"))
+
             transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
                                                     [False, False, True, True, True, True, True])
 
@@ -435,6 +437,7 @@ class OriginalReconstructDataSet(BaseDataSet):
             data["foreground"] = (data["foreground"] > 0).to(torch.long)
             data["U"] = data["IUV"][1,:,:].unsqueeze(0).to(torch.float32)/self.config["URange"]
             data["V"] = data["IUV"][0,:,:].unsqueeze(0).to(torch.float32)/self.config["VRange"]
+            
             data.pop("IUV")
 
 
@@ -481,11 +484,15 @@ class OriginalReconstructDataSet(BaseDataSet):
                     [True, False], return_tensor=False )
 
 
-                texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
+                # texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
+                # texture_tensor = F.to_tensor(texture_)
+                print (this_image_fp)
+                print (this_densepose_fp)
 
-                # cv2.imwrite('texture_{}.png'.format(time_str), texture_ )
-                # exit()
-                texture_tensor = F.to_tensor(texture_)
+                texture = self.loader(os.path.join(folder, "texture", name + ".png"), mode="RGB")
+                texture_tensor = F.to_tensor(texture)
+
+
                 texture_size = texture_tensor.size()[1]//4
                 texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
                 texture_tensor = texture_tensor.permute(1, 3, 0, 2, 4)
@@ -634,13 +641,11 @@ class TransferDataSet(BaseDataSet):
                 [True, False], return_tensor=False )
 
 
-            texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
-            cv2.imwrite('texture_{}.png'.format(time_str), texture_ )
-            exit()
-            texture_tensor = F.to_tensor(texture_)
+            # texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
+            # texture_tensor = F.to_tensor(texture_)
 
-            # texture = self.loader(os.path.join(src_root, "texture", name + ".png"), mode="RGB")
-            # texture_tensor = F.to_tensor(texture)
+            texture = self.loader(os.path.join(src_root, "texture", name + ".png"), mode="RGB")
+            texture_tensor = F.to_tensor(texture)
             texture_size = texture_tensor.size()[1] // 4
             texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
             texture_tensor = texture_tensor.permute(1, 3, 0, 2, 4)

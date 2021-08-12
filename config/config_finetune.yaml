@@ -1,7 +1,7 @@
  # source root
 source_root: /data/FSMR_data/top_data/test/91-3003CN5S/        # target root
 target_root: /data/FSMR_data/top_data/train/81FyMPk-WIS/
-output_name: output.mp4
+output_name: debugging_sanity_check.mp4
 output_folder: video
 checkpoint_path: /data/FSMR_data/checkpoint_fsmt/
 name: ubc_checkpoints                           # name of checkpoint

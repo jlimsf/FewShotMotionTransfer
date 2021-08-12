@@ -46,7 +46,7 @@ def create_finetune_set(root, samples=20):
         shutil.copyfile(os.path.join(folder, "image", name + ".png"), os.path.join(newfolder, "image", name + ".png"))
         shutil.copyfile(os.path.join(folder, "body", name + ".png"), os.path.join(newfolder, "body", name + ".png"))
         shutil.copyfile(os.path.join(folder, "densepose", name + ".png"), os.path.join(newfolder, "densepose", name + ".png"))
-        # shutil.copyfile(os.path.join(folder, "texture", name+".png"), os.path.join(newfolder, "texture", name+".png"))
+        shutil.copyfile(os.path.join(folder, "texture", name+".png"), os.path.join(newfolder, "texture", name+".png"))
         shutil.copyfile(os.path.join(folder, "segmentation", name+".png"), os.path.join(newfolder, "segmentation", name+".png"))
 
     with open(os.path.join(newfolder, "image_list.txt"), "w") as f:
@@ -141,7 +141,7 @@ def inference(model, config, device_idxs=[0]):
     config['phase'] = 'inference'
     config['hflip'] = False
     dataset = TransferDataSet(config['target_root'], config['source_root'], config)
-    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=0, pin_memory=True, shuffle=False)
+    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=8, pin_memory=True, shuffle=False)
 
     device = torch.device("cuda:" + str(device_idxs[0]))
     image_size = config['resize']
@@ -174,6 +174,12 @@ def inference(model, config, device_idxs=[0]):
                 outputs = np.concatenate((real_image, label, fake_image), axis=3)
                 # outputs = fake_image
 
+                import datetime
+                time_str = str(datetime.datetime.now())
+                print (fake_image.shape)
+                pil_image_temp = Image.fromarray(np.squeeze(fake_image).astype('uint8'), 'RGB')
+                pil_image_temp.save("PIL_IMAGE_{}.png".format(time_str))
+                exit()
                 for output in outputs:
                     write_image = (output[::-1].transpose((1, 2, 0)) * 255).astype(np.uint8)
                     writer.write(write_image)
