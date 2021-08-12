@@ -606,25 +606,11 @@ class TransferDataSet(BaseDataSet):
         data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
         data = dict(zip(data_name, transform_output))
 
-        PILtoIM = transforms.ToPILImage(mode='RGB')
+        # PILtoIM = transforms.ToPILImage(mode='RGB')
         time_str = str(datetime.datetime.now())
         # print(densepose_fp)
-        PILtoIM(data['IUV']).save('{}_iuv.png'.format(time_str))
-        PILtoIM(data['class_image']).save('{}_class_image.png'.format(time_str))
-        exit()
-
-        # iuv_post_transform = transforms.ToPILImage(mode='RGB')(data["IUV"])
-
-        # for k,v in data.items():
-        #     if k in ["image", "class_image", "IUV"]:
-        #
-        #         img2 = transforms.ToPILImage(mode='RGB')(v)
-        #         img2.save('debug_256_{}.png'.format(k))
-        #     # if k in [ "foreground", "class_foreground"]:
-        #     #     img2 = transforms.ToPILImage()(v)
-        #     #     img2.save('debug_256_{}.png'.format(k))
-        #
-        #
+        # PILtoIM(data['IUV']).save('{}_iuv.png'.format(time_str))
+        # PILtoIM(data['class_image']).save('{}_class_image.png'.format(time_str))
         # exit()
 
         data["foreground"] = (data["foreground"] > 0).to(torch.long)
@@ -649,6 +635,8 @@ class TransferDataSet(BaseDataSet):
 
 
             texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
+            cv2.imwrite('texture_{}.png'.format(time_str), texture_ )
+            exit()
             texture_tensor = F.to_tensor(texture_)
 
             # texture = self.loader(os.path.join(src_root, "texture", name + ".png"), mode="RGB")
