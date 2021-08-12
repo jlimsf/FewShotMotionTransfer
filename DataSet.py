@@ -414,17 +414,13 @@ class OriginalReconstructDataSet(BaseDataSet):
             densepose_fp =  os.path.join(folder, "densepose", name+".png")
             IUV = self.loader(densepose_fp, mode="RGB")
 
-            print (np.unique(np.asarray(class_foreground), return_counts=True))
-            print (np.unique(np.asarray(foreground),return_counts=True))
-            print (os.path.join(folder, "segmentation", image_name+".png"))
-            print (os.path.join(folder, "segmentation", name+".png"))
-
             transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
                                                     [False, False, True, True, True, True, True])
 
 
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
+
 
             # PILtoIM = transforms.ToPILImage()
             time_str = str(datetime.datetime.now())
@@ -486,10 +482,9 @@ class OriginalReconstructDataSet(BaseDataSet):
 
                 # texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
                 # texture_tensor = F.to_tensor(texture_)
-                print (this_image_fp)
-                print (this_densepose_fp)
 
                 texture = self.loader(os.path.join(folder, "texture", name + ".png"), mode="RGB")
+                print ('texture image shape is {}'.format(np.asarray(texture).shape))
                 texture_tensor = F.to_tensor(texture)
 
 

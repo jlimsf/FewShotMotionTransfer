@@ -8,7 +8,8 @@ import torch.nn.functional as F
 import torch.nn.init as init
 import numpy as np
 import math
-
+import datetime
+import torchvision.transforms as transforms
 
 
 def weights_init(init_type='gaussian'):
@@ -140,6 +141,7 @@ class Model(nn.Module):
 
         prob_mask = F.softmax(mask, dim=1)
         B, _, H, W= cordinate.size()
+        # print (cordinate.dtype)
         u = cordinate[:,:24]*2-1
         v = cordinate[:,24:]*2-1
 
@@ -147,10 +149,21 @@ class Model(nn.Module):
         textures = []
         b, c, h, w = texture.size()
         texture = texture.view(b, 24, c//24, h, w)
+
         for i in range(B):
             textures.append(nn.functional.grid_sample(texture[i], grids[i]))
 
         textures = torch.stack(textures, dim=0)
+        PILtoIM = transforms.ToPILImage()
+        debug_texture = textures.squeeze(0)
+        time_str = str(datetime.datetime.now())
+        for i, dt in enumerate(debug_texture):
+
+            print (dt.shape)
+            print (torch.unique(dt))
+            texture_pil = PILtoIM(dt)
+            texture_pil.save('texture_grid_debug/{}_{}.png'.format(i, time_str))
+        exit()
         fake_image = (prob_mask[:,1:].unsqueeze(2).expand_as(textures)*textures).sum(dim=1)
 
         return prob_mask, fake_image
@@ -301,6 +314,7 @@ class Model(nn.Module):
         mask, coordinate = self.generator.dec(pose_code, label_code, label_feature)
 
         texture = self.texture_generator.forward_feat(self.texture_stack).repeat(self.config['batchsize'], 1, 1, 1)
+
         prob_mask, fake_image = self.get_image(mask, coordinate, texture)
         mask_foreground = 1 - prob_mask[:, 0].unsqueeze(1).expand(-1, 3, -1, -1).to(torch.float32)
 
@@ -326,7 +340,7 @@ class Model(nn.Module):
         texture = self.texture_generator.forward_feat(self.texture_stack).repeat(self.config['batchsize'], 1, 1, 1)
 
         image = data["image"] * data["foreground"].expand_as(data["image"]).to(torch.float32)
-
+        print ("Getting image in inference")
         prob_mask, fake_image = self.get_image(mask, coordinate, texture)
         mask_foreground = 1 - prob_mask[:, 0].unsqueeze(1).expand(-1, 3, -1, -1).to(torch.float32)
 

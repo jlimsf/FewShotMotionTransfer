@@ -168,20 +168,10 @@ def inference(model, config, device_idxs=[0]):
                 B, _, H, W = coordinate.size()
 
                 real_image = data['image'].cpu().numpy()
-                # print (np.unique(fake_image.cpu().numpy()))
                 fake_image = np.clip(fake_image.cpu().numpy(), 0, 1)
-                # fake_image = fake_image.cpu().numpy()
                 outputs = np.concatenate((real_image, label, fake_image), axis=3)
-                # outputs = fake_image
 
-                import datetime
-                time_str = str(datetime.datetime.now())
-                temp_fake_im = (np.squeeze(fake_image).transpose((1, 2, 0)) * 255).astype(np.uint8)
-                print (temp_fake_im)
-                pil_image_temp = Image.fromarray(temp_fake_im, 'RGB')
-                pil_image_temp.save("PIL_IMAGE_{}.png".format(time_str))
-                print ("Saved")
-                exit()
+
                 for output in outputs:
                     write_image = (output[::-1].transpose((1, 2, 0)) * 255).astype(np.uint8)
                     writer.write(write_image)
