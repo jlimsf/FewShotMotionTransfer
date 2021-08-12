@@ -173,10 +173,12 @@ def inference(model, config, device_idxs=[0]):
                 cfg = data['class_foreground'].cpu().numpy()
                 class_body = utils.d_colorize(data_gpu["class_body"]).cpu().numpy()
                 class_body_full = ((utils.d_colorize(data_gpu["class_body_raw"]).squeeze(0).cpu().numpy().transpose(1,2,0)) * 255).astype(np.uint8)
+                class_body_resize = ((utils.d_colorize(data_gpu["class_body"]).squeeze(0).cpu().numpy().transpose(1,2,0)) * 255).astype(np.uint8)
 
                 print (class_body_full)
                 print (class_body_full.shape)
-                cv2.imwrite('full_class_body_Sample_RT.png', class_body_full)
+                cv2.imwrite('full_class_bodydebug.png', class_body_full)
+                cv2.imwrite('full_class_bodydebugsmall.png', class_body_resize)
                 print ('saving')
                 exit()
                 fake_image = np.clip(fake_image.cpu().numpy(), 0, 1)

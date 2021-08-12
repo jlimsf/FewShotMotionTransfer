@@ -659,6 +659,7 @@ class TransferDataSet(BaseDataSet):
 
         data["class"] = 0
         data['class_body_raw'] = self.label_to_tensor(class_body)
+        # data['class_body_resize'] = self.label_to_tensor(class_body)
         return data
 
 
