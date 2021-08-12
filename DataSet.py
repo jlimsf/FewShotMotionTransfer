@@ -608,7 +608,6 @@ class TransferDataSet(BaseDataSet):
         class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[0] + ".png"), mode="L")
         IUV = self.loader(os.path.join(src_root, "densepose", self.src_filelist[0]+".png"), mode='RGB')
 
-
         transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
                                             [False, False, True, True, True, True, True])
 
@@ -647,7 +646,7 @@ class TransferDataSet(BaseDataSet):
             # texture_tensor = F.to_tensor(texture_)
 
             texture = self.loader(os.path.join(src_root, "texture", name + ".png"), mode="RGB")
-            texture.save('1_{}_texture_debug.png'.format(name))
+            # texture.save('1_{}_texture_debug.png'.format(name))
             texture_tensor = F.to_tensor(texture)
             texture_size = texture_tensor.size()[1] // 4
             texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
@@ -659,6 +658,7 @@ class TransferDataSet(BaseDataSet):
         data["texture"] = torch.stack(textures, dim=0)
 
         data["class"] = 0
+        data['class_body_raw'] = self.label_to_tensor(class_body)
         return data
 
 

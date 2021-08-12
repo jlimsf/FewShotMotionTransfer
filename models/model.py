@@ -357,7 +357,6 @@ class Model(nn.Module):
         texture = self.texture_generator.forward_feat(self.texture_stack).repeat(self.config['batchsize'], 1, 1, 1)
 
         image = data["image"] * data["foreground"].expand_as(data["image"]).to(torch.float32)
-        print ("Getting image in inference")
         prob_mask, fake_image = self.get_image(mask, coordinate, texture)
         mask_foreground = 1 - prob_mask[:, 0].unsqueeze(1).expand(-1, 3, -1, -1).to(torch.float32)
 
