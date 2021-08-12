@@ -428,14 +428,10 @@ class OriginalReconstructDataSet(BaseDataSet):
             # # print(densepose_fp)
             fg_numpy = data['foreground'].numpy().transpose(1,2,0)
             cfg_numpy = data['class_foreground'].numpy().transpose(1,2,0)
-            print (fg_numpy.shape)
-            print (cfg_numpy.shape)
-            cv2.imwrite('{}_fg.png'.format(time_str), fg_numpy)
-            cv2.imwrite('{}_cfg.png'.format(time_str), cfg_numpy)
-            exit()
+
             # PILtoIM(data['class_foreground']).save('{}_c_foreground.png'.format(time_str))
-            PILtoIM(data['foreground']).save('{}_foregroundpng'.format(time_str))
-            exit()
+            # PILtoIM(data['foreground']).save('{}_foregroundpng'.format(time_str))
+            # exit()
 
             data["mask"] = data["IUV"][-1,:,:]
             data["foreground"] = (data["foreground"] > 0).to(torch.long)
@@ -493,6 +489,9 @@ class OriginalReconstructDataSet(BaseDataSet):
 
                 texture = self.loader(os.path.join(folder, "texture", name + ".png"), mode="RGB")
                 print ('texture image shape is {}'.format(np.asarray(texture).shape))
+                print (os.path.join(folder, "texture", name + ".png"))
+                texture.save('{}_texture_debug.png'.format(name))
+                exit()
                 texture_tensor = F.to_tensor(texture)
 
 
