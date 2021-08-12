@@ -170,7 +170,7 @@ class Model(nn.Module):
         for i in range(B):
             textures.append(nn.functional.grid_sample(texture[i], grids[i]))
 
-        # textures = torch.stack(textures, dim=0)
+        textures = torch.stack(textures, dim=0)
         # PILtoIM = transforms.ToPILImage()
         # debug_texture = textures.squeeze(0)
         # time_str = str(datetime.datetime.now())

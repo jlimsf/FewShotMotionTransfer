@@ -648,8 +648,6 @@ class TransferDataSet(BaseDataSet):
 
             texture = self.loader(os.path.join(src_root, "texture", name + ".png"), mode="RGB")
             texture.save('1_{}_texture_debug.png'.format(name))
-            print ('saving')
-            exit()
             texture_tensor = F.to_tensor(texture)
             texture_size = texture_tensor.size()[1] // 4
             texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)

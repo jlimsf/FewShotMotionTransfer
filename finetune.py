@@ -141,7 +141,7 @@ def inference(model, config, device_idxs=[0]):
     config['phase'] = 'inference'
     config['hflip'] = False
     dataset = TransferDataSet(config['target_root'], config['source_root'], config)
-    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=0, pin_memory=True, shuffle=False)
+    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=4, pin_memory=True, shuffle=False)
 
     device = torch.device("cuda:" + str(device_idxs[0]))
     image_size = config['resize']
@@ -163,6 +163,12 @@ def inference(model, config, device_idxs=[0]):
             for i, data in iterator:
                 data_gpu = {key: item.to(device) for key, item in data.items()}
                 mask, fake_image, real_image, body, coordinate, texture = model(data_gpu, "inference")
+
+                print (texture.shape)
+                texture_debug = texture.squeeze().view(768,512,3).detach().cpu().numpy()
+                print (texture_debug)
+                cv2.imwrite('texture_debug_view.png', texture_debug)
+                exit()
 
                 label = utils.d_colorize(data_gpu["body"]).cpu().numpy()
                 B, _, H, W = coordinate.size()

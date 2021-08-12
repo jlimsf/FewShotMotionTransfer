@@ -1,8 +1,8 @@
-python -W ignore finetune.py config/config_finetune.yaml \
-              --target /data/FSMR_data/top_data/train/91-kqBbzDIS \
-              --source debugging/sample_RT/sample1 \
-              --epochs 0 \
-              --device 0
+# python -W ignore finetune.py config/config_finetune.yaml \
+#               --target /data/FSMR_data/top_data/train/91-kqBbzDIS \
+#               --source debugging/sample_RT/sample1 \
+#               --epochs 0 \
+#               --device 0
 
 python -W ignore finetune.py config/config_finetune.yaml \
               --target /data/FSMR_data/top_data/train/91-kqBbzDIS \
