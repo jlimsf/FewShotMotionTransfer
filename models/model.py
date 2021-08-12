@@ -10,7 +10,7 @@ import numpy as np
 import math
 import datetime
 import torchvision.transforms as transforms
-
+import cv2
 
 def weights_init(init_type='gaussian'):
     def init_fun(m):
@@ -148,6 +148,21 @@ class Model(nn.Module):
         grids = torch.stack((v,u), dim=4)
         textures = []
         b, c, h, w = texture.size()
+
+        time_str = str(datetime.datetime.now())
+        texture_debug = texture.squeeze().view(3, 24, h, w)
+        print (texture_debug.shape)
+        texture_debug = texture_debug.permute(1, 2, 3, 0)
+        texture_debug = texture_debug.detach().cpu().numpy()
+        print (texture_debug.shape)
+        TextureIm = np.zeros((128 * 4, 128 * 6, 3), dtype=np.uint8)
+        for i in range(len(texture_debug)):
+            x = i // 6 * 128
+            y = i % 6 * 128
+            TextureIm[x:x + 128, y:y + 128] = texture_debug[i]
+        cv2.imwrite('texture_map_debug_{}.png'.format(time_str), TextureIm)
+        print ("Saved")
+        exit()
         texture = texture.view(b, 24, c//24, h, w)
 
         for i in range(B):
