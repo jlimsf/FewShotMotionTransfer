@@ -422,18 +422,26 @@ class OriginalReconstructDataSet(BaseDataSet):
             data=dict(zip(data_name, transform_output))
 
 
-            # PILtoIM = transforms.ToPILImage()
+
+            PILtoIM = transforms.ToPILImage()
             time_str = str(datetime.datetime.now())
             # # print(densepose_fp)
+            fg_numpy = data['foreground'].numpy().transpose(1,2,0)
+            cfg_numpy = data['class_foreground'].numpy().transpose(1,2,0)
+            print (fg_numpy.shape)
+            print (cfg_numpy.shape)
+            cv2.imwrite('{}_fg.png'.format(time_str), fg_numpy)
+            cv2.imwrite('{}_cfg.png'.format(time_str), cfg_numpy)
+            exit()
             # PILtoIM(data['class_foreground']).save('{}_c_foreground.png'.format(time_str))
-            # PILtoIM(data['foreground']).save('{}_foregroundpng'.format(time_str))
-            # exit()
+            PILtoIM(data['foreground']).save('{}_foregroundpng'.format(time_str))
+            exit()
 
             data["mask"] = data["IUV"][-1,:,:]
             data["foreground"] = (data["foreground"] > 0).to(torch.long)
             data["U"] = data["IUV"][1,:,:].unsqueeze(0).to(torch.float32)/self.config["URange"]
             data["V"] = data["IUV"][0,:,:].unsqueeze(0).to(torch.float32)/self.config["VRange"]
-            
+
             data.pop("IUV")
 
 

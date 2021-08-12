@@ -141,7 +141,7 @@ class Model(nn.Module):
 
         prob_mask = F.softmax(mask, dim=1)
         B, _, H, W= cordinate.size()
-        # print (cordinate.dtype)
+
         u = cordinate[:,:24]*2-1
         v = cordinate[:,24:]*2-1
 
@@ -149,38 +149,38 @@ class Model(nn.Module):
         textures = []
         b, c, h, w = texture.size()
 
-        time_str = str(datetime.datetime.now())
-        texture_debug = texture.squeeze().view(3, 24, h, w)
-        print (texture_debug.shape)
-        texture_debug = texture_debug.permute(1, 2, 3, 0)
-        texture_debug = texture_debug.detach().cpu().numpy()
-        print (texture_debug.shape)
-        TextureIm = np.zeros((128 * 4, 128 * 6, 3), dtype=np.uint8)
-        for i in range(len(texture_debug)):
-            x = i // 6 * 128
-            y = i % 6 * 128
-            map = (texture_debug[i]*255).astype(np.uint8)
-            
-            TextureIm[x:x + 128, y:y + 128] = map
-        cv2.imwrite('texture_map_debug_{}.png'.format(time_str), TextureIm)
-        print ("Saved")
-        exit()
+        # time_str = str(datetime.datetime.now())
+        # texture_debug = texture.squeeze().view(3, 24, h, w)
+        # print (texture_debug.shape)
+        # texture_debug = texture_debug.permute(1, 2, 3, 0)
+        # texture_debug = texture_debug.detach().cpu().numpy()
+        # print (texture_debug.shape)
+        # TextureIm = np.zeros((128 * 4, 128 * 6, 3), dtype=np.uint8)
+        # for i in range(len(texture_debug)):
+        #     x = i // 6 * 128
+        #     y = i % 6 * 128
+        #     map = (texture_debug[i]*255).astype(np.uint8)
+        #
+        #     TextureIm[x:x + 128, y:y + 128] = map
+        # cv2.imwrite('texture_map_debug_{}.png'.format(time_str), TextureIm)
+        # print ("Saved")
+        # exit()
         texture = texture.view(b, 24, c//24, h, w)
 
         for i in range(B):
             textures.append(nn.functional.grid_sample(texture[i], grids[i]))
 
-        textures = torch.stack(textures, dim=0)
-        PILtoIM = transforms.ToPILImage()
-        debug_texture = textures.squeeze(0)
-        time_str = str(datetime.datetime.now())
-        for i, dt in enumerate(debug_texture):
-
-            print (dt.shape)
-            print (torch.unique(dt))
-            texture_pil = PILtoIM(dt)
-            texture_pil.save('texture_grid_debug/{}_{}.png'.format(i, time_str))
-        exit()
+        # textures = torch.stack(textures, dim=0)
+        # PILtoIM = transforms.ToPILImage()
+        # debug_texture = textures.squeeze(0)
+        # time_str = str(datetime.datetime.now())
+        # for i, dt in enumerate(debug_texture):
+        #
+        #     print (dt.shape)
+        #     print (torch.unique(dt))
+        #     texture_pil = PILtoIM(dt)
+        #     texture_pil.save('texture_grid_debug/{}_{}.png'.format(i, time_str))
+        # exit()
         fake_image = (prob_mask[:,1:].unsqueeze(2).expand_as(textures)*textures).sum(dim=1)
 
         return prob_mask, fake_image
