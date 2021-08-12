@@ -424,12 +424,12 @@ class OriginalReconstructDataSet(BaseDataSet):
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
 
-            PILtoIM = transforms.ToPILImage(mode='RGB')
+            # PILtoIM = transforms.ToPILImage()
             time_str = str(datetime.datetime.now())
-            print(densepose_fp)
-            PILtoIM(data['class_image']).save('{}_image.png'.format(time_str))
-            PILtoIM(data['IUV']).save('{}_iuv.png'.format(time_str))
-            exit()
+            # # print(densepose_fp)
+            # PILtoIM(data['class_foreground']).save('{}_c_foreground.png'.format(time_str))
+            # PILtoIM(data['foreground']).save('{}_foregroundpng'.format(time_str))
+            # exit()
 
             data["mask"] = data["IUV"][-1,:,:]
             data["foreground"] = (data["foreground"] > 0).to(torch.long)
@@ -482,6 +482,9 @@ class OriginalReconstructDataSet(BaseDataSet):
 
 
                 texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
+                print (texture_.shape)
+                cv2.imwrite(texture_, 'texture_{}.png'.format(time_str) )
+                exit()
                 texture_tensor = F.to_tensor(texture_)
 
                 # texture_tensor = F.to_tensor(texture)
