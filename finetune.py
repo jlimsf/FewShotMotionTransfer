@@ -168,7 +168,7 @@ def inference(model, config, device_idxs=[0]):
                 texture = texture * 255.
                 texture_debug = (texture.squeeze().view(512,768,3).detach().cpu().numpy()).astype(np.uint8)
                 print (texture_debug)
-                cv2.imwrite('texture_debug_view.png', texture_debug)
+                cv2.imwrite('texture_debug_view_1.png', texture_debug)
                 exit()
 
                 label = utils.d_colorize(data_gpu["body"]).cpu().numpy()
