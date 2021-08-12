@@ -33,7 +33,7 @@ class BaseDataSet(dataset.Dataset):
         if 'resize' in self.config:
             old_size, _ = images[0].size
             size = [self.config['resize'], self.config['resize']]
-            resize = transforms.Resize(size, Image.ANTIALIAS)
+            resize = transforms.Resize(size, Image.NEAREST)
             for i in range(len(images)):
                 images[i] = resize(images[i])
 
@@ -97,7 +97,7 @@ class ReconstructDataSet(BaseDataSet):
         if 'resize' in self.config:
             old_size, _ = images[0].size
             size = [self.config['resize'], self.config['resize']]
-            resize = transforms.Resize(size, Image.ANTIALIAS)
+            resize = transforms.Resize(size, Image.NEAREST)
 
             if self.to_crop == True:
                 coin = random.randint(1, 2)
@@ -345,7 +345,7 @@ class OriginalReconstructDataSet(BaseDataSet):
         if 'resize' in self.config:
             old_size, _ = images[0].size
             size = [self.config['resize'], self.config['resize']]
-            resize = transforms.Resize(size, Image.ANTIALIAS)
+            resize = transforms.Resize(size, Image.NEAREST)
 
             for i in range(len(images)):
                 this_im = images[i]
@@ -548,7 +548,7 @@ class TransferDataSet(BaseDataSet):
         if 'resize' in self.config:
             old_size, _ = images[0].size
             size = [self.size, self.size]
-            resize = transforms.Resize(size, Image.ANTIALIAS)
+            resize = transforms.Resize(size, Image.NEAREST)
 
             for i in range(len(images)):
                 this_im = images[i]
@@ -839,7 +839,7 @@ class ValidationTransferDataSet(BaseDataSet):
         if 'resize' in self.config:
             old_size, _ = images[0].size
             size = [self.config['resize'], self.config['resize']]
-            resize = transforms.Resize(size, Image.ANTIALIAS)
+            resize = transforms.Resize(size, Image.NEAREST)
             for i in range(len(images)):
                 images[i] = resize(images[i])
 
