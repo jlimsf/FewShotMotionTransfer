@@ -159,7 +159,9 @@ class Model(nn.Module):
         for i in range(len(texture_debug)):
             x = i // 6 * 128
             y = i % 6 * 128
-            TextureIm[x:x + 128, y:y + 128] = texture_debug[i]
+            map = (texture_debug[i]*255).astype(np.uint8)
+            
+            TextureIm[x:x + 128, y:y + 128] = map
         cv2.imwrite('texture_map_debug_{}.png'.format(time_str), TextureIm)
         print ("Saved")
         exit()
