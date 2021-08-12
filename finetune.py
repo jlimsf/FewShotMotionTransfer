@@ -176,7 +176,7 @@ def inference(model, config, device_idxs=[0]):
 
                 print (class_body_full)
                 print (class_body_full.shape)
-                cv2.imwrite('full_class_body.png', class_body_full)
+                cv2.imwrite('full_class_body_Sample_RT.png', class_body_full)
                 print ('saving')
                 exit()
                 fake_image = np.clip(fake_image.cpu().numpy(), 0, 1)
