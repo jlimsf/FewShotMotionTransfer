@@ -165,7 +165,8 @@ def inference(model, config, device_idxs=[0]):
                 mask, fake_image, real_image, body, coordinate, texture = model(data_gpu, "inference")
 
                 print (texture.shape)
-                texture_debug = texture.squeeze().view(768,512,3).detach().cpu().numpy()
+                texture = texture * 255.
+                texture_debug = (texture.squeeze().view(512,768,3).detach().cpu().numpy()).astype(np.uint8)
                 print (texture_debug)
                 cv2.imwrite('texture_debug_view.png', texture_debug)
                 exit()
