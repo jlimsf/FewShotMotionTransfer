@@ -151,8 +151,8 @@ def pretrain(config, writer, device_idxs=[0]):
     device = torch.device("cuda:" + str(device_idxs[0]))
 
     dataset = ReconstructDataSet(config['dataroot'], config, to_crop=True)
-    dataset_RT = RT_ReconstructDataSet('/data/FSMR_data/rebecca_taylor_top_v2/train',
-                config, min_sequence_len=5, len_ubc_dataset=len(dataset.filelists))
+    dataset_RT = RT_ReconstructDataSet('/data/FSMR_data/rebecca_taylor_top_v4_256/train',
+                config, min_sequence_len=2, len_ubc_dataset=len(dataset.filelists))
 
     joint_dataset = torch.utils.data.ConcatDataset([dataset, dataset_RT])
     joined_filelist = dataset.filelists + dataset_RT.filelists
@@ -161,9 +161,9 @@ def pretrain(config, writer, device_idxs=[0]):
     sampler_RT = utils.TrainSampler(config['batchsize'], dataset_RT.filelists)
     joint_sampler = utils.TrainSampler(config['batchsize'], joined_filelist)
 
-    data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=16, pin_memory=False, drop_last=True)
-    data_loader_RT = DataLoader(dataset_RT, batch_sampler=sampler_RT, num_workers=16, pin_memory=True, drop_last=True)
-    joint_dataloader = DataLoader(joint_dataset, batch_sampler=joint_sampler, num_workers=4, pin_memory=False, drop_last=True)
+    # data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=16, pin_memory=False, drop_last=True)
+    data_loader_RT = DataLoader(dataset_RT, batch_sampler=sampler_RT, num_workers=0, pin_memory=True)
+    # joint_dataloader = DataLoader(joint_dataset, batch_sampler=joint_sampler, num_workers=4, pin_memory=False, drop_last=True)
 
     # validation_dataset_UBC = RT_ReconstructDataSet('/data/FSMR_data/rebecca_taylor_top_v2/test',
     #                     config,min_sequence_len=5, len_ubc_dataset=len(dataset.filelists))
@@ -206,9 +206,11 @@ def pretrain(config, writer, device_idxs=[0]):
 
     for epoch in trange(config['epochs']):
 
-        iterator = tqdm(enumerate(data_loader), total=len(data_loader))
+        iterator = tqdm(enumerate(data_loader_RT), total=len(data_loader_RT))
         for i, data in iterator:
             data_gpu = {key: item.to(device) for key, item in data.items()}
+
+
 
             if i % 200 <= 100:
                 mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV_RT")
@@ -275,12 +277,8 @@ def pretrain(config, writer, device_idxs=[0]):
 
 
         #validate
-
-
-
-
-        model.module.save('latest_UBC_crop')
-        model.module.save(str(epoch+1)+"_UBC_crop")
+        # model.module.save('latest_UBC_crop')
+        # model.module.save(str(epoch+1)+"_UBC_crop")
 
         model.module.scheduler_G.step()
 

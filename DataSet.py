@@ -124,8 +124,8 @@ class ReconstructDataSet(BaseDataSet):
                     images[i] = self.label_to_tensor(images[i])
                 else:
                     images[i] = F.to_tensor(images[i])
-                    if to_normalize:
-                        images[i] = normalize_function(images[i])
+                    # if to_normalize:
+                    #     images[i] = normalize_function(images[i])
             return images
         else:
             return images
@@ -181,15 +181,16 @@ class ReconstructDataSet(BaseDataSet):
         name = self.filelist[index][0]
         folder = self.folders[label]
 
+
         if self.stage == 'pretrain' or self.stage == 'train':
-            image = self.loader(os.path.join(folder, "image", name+".jpg"), mode="RGB")
+            image = self.loader(os.path.join(folder, "image", name+".png"), mode="RGB")
             body = self.loader(os.path.join(folder, "body", name+".png"), mode="L")
             foreground = self.loader(os.path.join(folder, "segmentation", name+".png"), mode="L")
 
             #Targets
             image_index = random.randrange(0, len(self.filelists[label]))
             image_name = self.filelists[label][image_index][0]
-            class_image = self.loader(os.path.join(folder, "image", image_name+".jpg"), mode="RGB")
+            class_image = self.loader(os.path.join(folder, "image", image_name+".png"), mode="RGB")
             class_foreground = self.loader(os.path.join(folder, "segmentation", image_name+".png"), mode="L")
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
             IUV = self.loader(os.path.join(folder, "densepose", name+".png"), mode="RGB")
@@ -242,6 +243,9 @@ class ReconstructDataSet(BaseDataSet):
             texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
             texture_tensor = F.to_tensor(texture_)
 
+            texture = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
+            texture_tensor = F.to_tensor(texture)
+
 
             texture_size = texture_tensor.size()[1] // 4
             texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
@@ -286,20 +290,25 @@ class ReconstructDataSet(BaseDataSet):
 
                 name = self.filelists[label][i][0]
 
-                this_densepose_fp = os.path.join(folder, "densepose", name+".png")
-                this_densepose_pil = self.loader(this_densepose_fp, mode='RGB')
+                # this_densepose_fp = os.path.join(folder, "densepose", name+".png")
+                # this_densepose_pil = self.loader(this_densepose_fp, mode='RGB')
+                #
+                # this_image_fp = os.path.join(folder, 'image', name+".png")
+                # this_image_pil = self.loader(this_image_fp, mode="RGB")
+                # #extract texture on the fly
+                #
+                # [transforms_densepose, transforms_image] = \
+                #     self._transform([this_densepose_pil, this_image_pil],
+                #     [True, False], [False, False], crop_params = [i,j,h,w], to_flip=flip_val, return_tensor=False )
+                #
+                #
+                # texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
+                # texture_tensor = F.to_tensor(texture_)
 
-                this_image_fp = os.path.join(folder, 'image', name+".jpg")
-                this_image_pil = self.loader(this_image_fp, mode="RGB")
-                #extract texture on the fly
-
-                [transforms_densepose, transforms_image] = \
-                    self._transform([this_densepose_pil, this_image_pil],
-                    [True, False], [False, False], crop_params = [i,j,h,w], to_flip=flip_val, return_tensor=False )
-
-
-                texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
-                texture_tensor = F.to_tensor(texture_)
+                texture = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
+                texture_tensor = F.to_tensor(texture)
+                print (folder)
+                exit()
 
                 texture_size = texture_tensor.size()[1]//4
                 texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
@@ -399,6 +408,8 @@ class OriginalReconstructDataSet(BaseDataSet):
         label = self.filelist[index][1]
         name = self.filelist[index][0]
         folder = self.folders[label]
+
+
 
         if self.stage == 'pretrain' or self.stage == 'train':
             image = self.loader(os.path.join(folder, "image", name+".png"), mode="RGB")
@@ -602,11 +613,11 @@ class TransferDataSet(BaseDataSet):
         image = self.loader(os.path.join(root, "image", name + ".png"), mode="RGB")
         body = self.loader(os.path.join(root, "body", name + ".png"), mode="L")
         foreground = self.loader(os.path.join(root, "segmentation", name + ".png"), mode="L")
-        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[0] + ".png"), mode="RGB")
+        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[1] + ".png"), mode="RGB")
 
-        class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".png"), mode="L")
-        class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[0] + ".png"), mode="L")
-        IUV = self.loader(os.path.join(src_root, "densepose", self.src_filelist[0]+".png"), mode='RGB')
+        class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[1] + ".png"), mode="L")
+        class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[1] + ".png"), mode="L")
+        IUV = self.loader(os.path.join(src_root, "densepose", self.src_filelist[1]+".png"), mode='RGB')
 
         transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
                                             [False, False, True, True, True, True, True])
@@ -715,33 +726,20 @@ class RT_ReconstructDataSet(BaseDataSet):
         label -= self.len_ubc_dataset
         folder = self.folders[label]
 
-
         if self.stage == 'pretrain' or self.stage == 'train':
 
-            image = self.loader(os.path.join(folder, "image", name+".jpg"), mode="RGB")
+            image = self.loader(os.path.join(folder, "image", name+".png"), mode="RGB")
             body = self.loader(os.path.join(folder, "body", name+".png"), mode="L")
-            foreground = self.loader(os.path.join(folder, "segmentation", name+".jpg"), mode="L")
+            foreground = self.loader(os.path.join(folder, "segmentation", name+".png"), mode="L")
             image_index = random.randrange(0, len(self.filelists[label]))
             image_name = self.filelists[label][image_index][0]
-            class_image = self.loader(os.path.join(folder, "image", image_name+".jpg"), mode="RGB")
-            class_foreground = self.loader(os.path.join(folder, "segmentation", image_name+".jpg"), mode="L")
+            class_image = self.loader(os.path.join(folder, "image", image_name+".png"), mode="RGB")
+            class_foreground = self.loader(os.path.join(folder, "segmentation", image_name+".png"), mode="L")
             class_body = self.loader(os.path.join(folder, "body", image_name+".png"), mode="L")
             IUV = self.loader(os.path.join(folder, "densepose", name+".png") , mode="RGB")
-            # IUV = imageio.imread(iuv_p)
-            #
-            # print (np.asarray(IUV).shape)
-            # print (np.unique(np.asarray(IUV)))
-            # print (np.unique(np.asarray(IUV)[:, :, 0]))
-            # print (np.unique(np.asarray(IUV)[:, :, 1]))
-            # print (np.unique(np.asarray(IUV)[:, :, 2]))
-            # transform_iuv = self._transform([IUV], [True] )[0]
-            # print (transform_iuv.shape)
-            # print (np.unique(transform_iuv[0, :, :]))
-            # print (np.unique(transform_iuv[1, :, :]))
-            # print (np.unique(transform_iuv[2, :, :]))
-            #
-            # exit()
-            transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV], [False, False, True, True, True, True, True])
+
+            transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
+                                        [False, False, True, True, True, True, True])
             data_name = ["image", "class_image", "body", "class_body", "foreground", "class_foreground", "IUV"]
             data=dict(zip(data_name, transform_output))
 
@@ -785,7 +783,12 @@ class RT_ReconstructDataSet(BaseDataSet):
 
             for i in indexes:
                 name = self.filelists[label][i][0]
-                texture = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
+                # print (folder)
+                # texture_folder = folder.replace('/data/FSMR_data/rebecca_taylor_top_v4_256','/data/FSMR_data/rebecca_taylor_top_v2/')
+                texture_fp = os.path.join(folder, 'texture', name+'.png')
+                # print (texture_fp)
+
+                texture = self.loader(texture_fp, mode="RGB")
                 texture_tensor = F.to_tensor(texture)
                 texture_size = texture_tensor.size()[1]//4
                 texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
@@ -861,8 +864,8 @@ class ValidationTransferDataSet(BaseDataSet):
         image = self.loader(os.path.join(root, "image", name + ".png"), mode="RGB")
         body = self.loader(os.path.join(root, "body", name + ".png"), mode="L")
         foreground = self.loader(os.path.join(root, "segmentation", name + ".png"), mode="L")
-        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[0] + ".jpg"), mode="RGB")
-        class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".jpg"), mode="L")
+        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[0] + ".png"), mode="RGB")
+        class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".png"), mode="L")
         class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[0] + ".png"), mode="L")
         transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground], [False, False, True, True, True, True])
 

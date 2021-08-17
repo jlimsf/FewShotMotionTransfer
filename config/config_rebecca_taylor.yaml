@@ -12,7 +12,7 @@ lr_milestone:
   - 10
 
 phase: train
-pretrain_name: 25_train
+pretrain_name: latest_train
 #latest_train_finetune_rebecca_taylor
 
 resize: 256
