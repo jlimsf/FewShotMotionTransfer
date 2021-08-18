@@ -63,6 +63,7 @@ for root in tqdm(folders):
         IUV = cv2.imread(IUV_path)
         texture = GetTexture(im, IUV,)
         out_path = osp(root, "texture", image_path[:-4] + ".png")
+        out_path = out_path.replace('rebecca_taylor_top_v3PNG/','rebecca_taylor_top_v5_256/')
 
         cv2.imwrite(out_path, texture)
         Textures += texture

@@ -17,6 +17,7 @@ def generate_list(root_path):
                os.path.exists(osp(root_path, "body", name + ".png")) and \
                os.path.exists(osp(root_path, "densepose", name + ".png")):
                 f.write(name + "\n")
+                print ("Good")
             else:
                 global ct
                 ct += 1

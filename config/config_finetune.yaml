@@ -17,7 +17,7 @@ lr_milestone:                           # steps of learning rate decay
 
 phase: finetune
 background: background.png
-pretrain_name:  15_train
+pretrain_name:  latest_UBC_crop
 
 resize: 256                             # size of image/pose
 texture_size: 128                       # size of texture

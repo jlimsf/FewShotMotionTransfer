@@ -786,7 +786,6 @@ class RT_ReconstructDataSet(BaseDataSet):
                 # print (folder)
                 # texture_folder = folder.replace('/data/FSMR_data/rebecca_taylor_top_v4_256','/data/FSMR_data/rebecca_taylor_top_v2/')
                 texture_fp = os.path.join(folder, 'texture', name+'.png')
-                # print (texture_fp)
 
                 texture = self.loader(texture_fp, mode="RGB")
                 texture_tensor = F.to_tensor(texture)

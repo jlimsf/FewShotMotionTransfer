@@ -43,7 +43,7 @@ Texture_G:
   output_dim: 72
 
 num_texture: 8
-l_texture: 1.0
+l_texture: 2.0
 l_coordinate: 10.0
 l_mask: 0.8
 l_vgg: 1.0

@@ -13,7 +13,7 @@
 python -W ignore finetune.py config/config_finetune.yaml \
               --target /data/FSMR_data/top_data/train/91-kqBbzDIS \
               --source /data/FSMR_data/rebecca_taylor_top_v4_256/train/017019B048/subject_1 \
-              --epochs 0 \
+              --epochs 15 \
               --device 0
 
 
