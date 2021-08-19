@@ -1,8 +1,8 @@
 dataroot: /data/FSMR_data/top_data/train/
 checkpoint_path: /data/FSMR_data/checkpoint_fsmt/
-name: selfatt_cropping_
+name: ubc_checkpoints
 
-batchsize: 4
+batchsize: 1
 epochs: 15
 
 

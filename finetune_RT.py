@@ -14,74 +14,15 @@ import os, cv2, traceback, shutil
 import numpy as np
 import random
 from torchvision.utils import save_image
+from models.networks import define_D
 
 torch.manual_seed(1)
 random.seed(2)
 np.random.seed(3)
 
 import wandb
-wandb.init(sync_tensorboard=True)
+# wandb.init(sync_tensorboard=True)
 
-
-# def validation(model, validation_loader, device, epoch, subject_name, image_size, writer):
-#
-#
-#     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-#     folder = os.path.join('validation/')
-#     if not os.path.exists(folder):
-#         os.system("mkdir -p "+folder)
-#
-#     subject_folder_name = os.path.join(folder, '/'.join(subject_name.split('/')[-3:]) )
-#     if not os.path.exists(subject_folder_name):
-#
-#         os.makedirs(subject_folder_name)
-#     print ("Writing to folder: {}".format(subject_folder_name))
-#     out_fname = os.path.join(subject_folder_name, "{}_vid.mp4".format(epoch))
-#     cv2_writer = cv2.VideoWriter(out_fname, fourcc, 24, (image_size*3, image_size))
-#     print (out_fname)
-#
-#     background = torch.ones((image_size, image_size))
-#     model = Model(config, "finetune")
-#     iter_loader = iter(validation_loader)
-#     model.prepare_for_finetune(next(iter_loader), background)
-#     model = model.to(device)
-#     model.background_start = model.background_start.to(device)
-#
-#
-#     vid_to_tensor = []
-#
-#     with torch.no_grad():
-#         try:
-#             iterator = tqdm(enumerate(validation_loader), total=len(validation_loader))
-#             for i, data in iterator:
-#                 data_gpu = {key: item.to(device) for key, item in data.items()}
-#
-#                 mask, fake_image, real_image, body, coordinate, texture = model(data_gpu, "inference")
-#
-#                 label = utils.d_colorize(data_gpu["body"]).cpu().numpy()
-#                 B, _, H, W = coordinate.size()
-#
-#                 real_image = data['image'].cpu().numpy()
-#                 fake_image = np.clip(fake_image.cpu().numpy(), 0, 1)
-#
-#                 outputs = np.concatenate((real_image, label, fake_image), axis=3)
-#                 for output in outputs:
-#                     write_image = (output[::-1].transpose((1, 2, 0)) * 255).astype(np.uint8)
-#
-#                     vid_to_tensor.append(torch.tensor(write_image))
-#
-#                     cv2_writer.write(write_image)
-#
-#         except Exception as e:
-#             print(traceback.format_exc())
-#             cv2_writer.release()
-#
-#         cv2_writer.release()
-#
-#     vid_to_tensor = torch.stack(vid_to_tensor, dim =0).unsqueeze(0)
-#     vid_to_tensor = vid_to_tensor.permute(0,1,4,2,3)
-#
-#     writer.add_video(tag="Validation/Video", vid_tensor = vid_to_tensor, fps=60)
 
 def validate(model, validation_dataloader, writer, device, iter, config):
 
@@ -163,23 +104,12 @@ def pretrain(config, writer, device_idxs=[0]):
 
     # data_loader = DataLoader(dataset, batch_sampler=sampler, num_workers=16, pin_memory=False, drop_last=True)
     data_loader_RT = DataLoader(dataset_RT, batch_sampler=sampler_RT, num_workers=16, pin_memory=True)
-    # joint_dataloader = DataLoader(joint_dataset, batch_sampler=joint_sampler, num_workers=4, pin_memory=False, drop_last=True)
-
-    # validation_dataset_UBC = RT_ReconstructDataSet('/data/FSMR_data/rebecca_taylor_top_v2/test',
-    #                     config,min_sequence_len=5, len_ubc_dataset=len(dataset.filelists))
-    # val_ubc_sampler = utils.TrainSampler(config['batchsize'], validation_dataset_UBC.filelists)
-    # validation_dataloader = DataLoader(validation_dataset_UBC, batch_sampler=val_ubc_sampler, num_workers=4, pin_memory=False)
 
 
-    #/data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/'
-    # validation_dataset = ValidationTransferDataSet(root='/vid_data/FSMR_data/top_data/train/91-2Jb8DkfS/',
-    #                                     src_root='/vid_data/FSMR_data/rebecca_taylor_top/test/000019B126/subject_1/',
-    #                                     config=config)
-    #
-    # validation_loader = DataLoader(validation_dataset,
-    #                             1, num_workers=4,
-    #                             pin_memory=True,
-    #                             shuffle=False)
+    discriminator = define_D(input_nc=3, ndf=32, netD='basic', norm='instance')
+    if torch.cuda.is_available():
+        discriminator.to(device)
+
     totol_step = 0
 
     model = Model(config, "train")
@@ -216,6 +146,10 @@ def pretrain(config, writer, device_idxs=[0]):
                 mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_UV_RT")
             else:
                 mask, fake_image, textures, body, cordinate, losses = model(data_gpu, "train_texture_RT")
+
+            print (fake_image.shape)
+            print (data['class_image'].shape)
+            exit()
 
             for key, item in losses.items():
                 losses[key] = item.mean()

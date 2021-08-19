@@ -21,7 +21,7 @@ hflip: false
 URange: 256
 VRange: 256
 
-display_freq: 100
+display_freq: 1
 
 body_nc: 26
 

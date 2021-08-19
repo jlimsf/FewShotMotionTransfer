@@ -102,6 +102,10 @@ def create_pose(root_path):
         connect_body(body_label, body_connect, threshold, body_point, thickness=3, label=1)
 
         result["{}.jpg".format(name)] = body_point
+        print (body_point)
+        print ("S")
+        print (body_label.shape)
+        exit()
         cv2.imwrite(os.path.join(root_path, "body", "{}.png".format(name)), body_label)
 
 

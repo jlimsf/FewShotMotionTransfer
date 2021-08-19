@@ -33,7 +33,7 @@ class BaseDataSet(dataset.Dataset):
         if 'resize' in self.config:
             old_size, _ = images[0].size
             size = [self.config['resize'], self.config['resize']]
-            resize = transforms.Resize(size, Image.ANTIALIAS)
+            resize = transforms.Resize(size, Image.NEAREST)
             for i in range(len(images)):
                 images[i] = resize(images[i])
 
@@ -97,7 +97,7 @@ class ReconstructDataSet(BaseDataSet):
         if 'resize' in self.config:
             old_size, _ = images[0].size
             size = [self.config['resize'], self.config['resize']]
-            resize = transforms.Resize(size, Image.ANTIALIAS)
+            resize = transforms.Resize(size, Image.NEAREST)
 
             if self.to_crop == True:
                 coin = random.randint(1, 2)
@@ -304,11 +304,21 @@ class ReconstructDataSet(BaseDataSet):
                 #
                 # texture_ = self.GetTexture(np.asarray(transforms_image), np.asarray(transforms_densepose))
                 # texture_tensor = F.to_tensor(texture_)
+                this_densepose_fp = os.path.join(folder, "densepose", name+".png")
+                this_densepose_pil = self.loader(this_densepose_fp, mode='RGB')
+
+                this_image_fp = os.path.join(folder, 'image', name+".png")
+                this_image_pil = self.loader(this_image_fp, mode="RGB")
+                #extract texture on the fly
+
+                [transforms_densepose, transforms_image] = \
+                    self._transform([this_densepose_pil, this_image_pil],
+                    [True, False], [False, False], crop_params = [i,j,h,w], to_flip=flip_val, return_tensor=False )
+
 
                 texture = self.loader(os.path.join(folder, "texture", name+".png"), mode="RGB")
                 texture_tensor = F.to_tensor(texture)
-                print (folder)
-                exit()
+
 
                 texture_size = texture_tensor.size()[1]//4
                 texture_tensor = texture_tensor.view(-1, 4, texture_size, 6, texture_size)
@@ -354,7 +364,7 @@ class OriginalReconstructDataSet(BaseDataSet):
         if 'resize' in self.config:
             old_size, _ = images[0].size
             size = [self.config['resize'], self.config['resize']]
-            resize = transforms.Resize(size, Image.ANTIALIAS)
+            resize = transforms.Resize(size, Image.NEAREST)
 
             for i in range(len(images)):
                 this_im = images[i]
@@ -559,7 +569,7 @@ class TransferDataSet(BaseDataSet):
         if 'resize' in self.config:
             old_size, _ = images[0].size
             size = [self.size, self.size]
-            resize = transforms.Resize(size, Image.ANTIALIAS)
+            resize = transforms.Resize(size, Image.NEAREST)
 
             for i in range(len(images)):
                 this_im = images[i]
@@ -613,11 +623,11 @@ class TransferDataSet(BaseDataSet):
         image = self.loader(os.path.join(root, "image", name + ".png"), mode="RGB")
         body = self.loader(os.path.join(root, "body", name + ".png"), mode="L")
         foreground = self.loader(os.path.join(root, "segmentation", name + ".png"), mode="L")
-        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[1] + ".png"), mode="RGB")
+        class_image = self.loader(os.path.join(src_root, "image", self.src_filelist[0] + ".png"), mode="RGB")
 
-        class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[1] + ".png"), mode="L")
-        class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[1] + ".png"), mode="L")
-        IUV = self.loader(os.path.join(src_root, "densepose", self.src_filelist[1]+".png"), mode='RGB')
+        class_foreground = self.loader(os.path.join(src_root, "segmentation", self.src_filelist[0] + ".png"), mode="L")
+        class_body = self.loader(os.path.join(src_root, "body", self.src_filelist[0] + ".png"), mode="L")
+        IUV = self.loader(os.path.join(src_root, "densepose", self.src_filelist[0]+".png"), mode='RGB')
 
         transform_output = self._transform([image, class_image, body, class_body, foreground, class_foreground, IUV],
                                             [False, False, True, True, True, True, True])
@@ -841,7 +851,7 @@ class ValidationTransferDataSet(BaseDataSet):
         if 'resize' in self.config:
             old_size, _ = images[0].size
             size = [self.config['resize'], self.config['resize']]
-            resize = transforms.Resize(size, Image.ANTIALIAS)
+            resize = transforms.Resize(size, Image.NEAREST)
             for i in range(len(images)):
                 images[i] = resize(images[i])
 

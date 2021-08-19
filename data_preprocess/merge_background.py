@@ -31,8 +31,8 @@ for folder in tqdm(folders):
     for file in files:
         try:
 
-            image = np.asarray(Image.open(osp(folder, "image/{}.jpg".format(file.strip()))).convert("RGB")).astype(np.float32) / 255
-            mask = Image.open(osp(folder, "segmentation/{}.jpg".format(file.strip()))).convert("RGB")
+            image = np.asarray(Image.open(osp(folder, "image/{}.png".format(file.strip()))).convert("RGB")).astype(np.float32) / 255
+            mask = Image.open(osp(folder, "segmentation/{}.png".format(file.strip()))).convert("RGB")
             mask = np.asarray(mask).astype(np.float32) / 255
 
             background = (1 - mask) * image

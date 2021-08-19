@@ -7,7 +7,7 @@ checkpoint_path: /data/FSMR_data/checkpoint_fsmt/
 name: ubc_checkpoints                           # name of checkpoint
 finetune_sample: 300
 
-batchsize: 1
+batchsize: 3
 epochs: 1
 finetune_coor_step: 10                  # steps of finetuning geometry generator
 lr: 0.0002                              # learning rate of finetuning geometry generator
@@ -26,7 +26,7 @@ URange: 256
 VRange: 256
 
 display: True
-display_freq: 5
+display_freq: 1
 
 body_nc: 26
 
@@ -47,10 +47,10 @@ Texture_G:
   input_dim: 72
   output_dim: 72
 
-num_texture: 1
+num_texture: 3
 
 #Constraint
-l_texture: 0.0
+l_texture: 2.
 l_coordinate: 5.0
 l_mask: 0.5
 l_vgg: 0.5

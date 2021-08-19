@@ -141,7 +141,7 @@ def inference(model, config, device_idxs=[0]):
     config['phase'] = 'inference'
     config['hflip'] = False
     dataset = TransferDataSet(config['target_root'], config['source_root'], config)
-    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=0, pin_memory=True, shuffle=False)
+    data_loader = DataLoader(dataset, batch_size=config['batchsize'], num_workers=8, pin_memory=True, shuffle=False)
 
     device = torch.device("cuda:" + str(device_idxs[0]))
     image_size = config['resize']
@@ -152,7 +152,7 @@ def inference(model, config, device_idxs=[0]):
         os.system("mkdir -p "+folder)
 
     print ("Writing to folder: {}".format(folder))
-    writer = cv2.VideoWriter(os.path.join(folder, config['output_name']), fourcc, 24, (image_size*6, image_size))
+    writer = cv2.VideoWriter(os.path.join(folder, config['output_name']), fourcc, 24, (image_size, image_size))
     print (config['output_name'])
     print (os.path.join(folder, config['output_name']))
 
@@ -172,19 +172,14 @@ def inference(model, config, device_idxs=[0]):
                 fg = data['foreground'].cpu().numpy()
                 cfg = data['class_foreground'].cpu().numpy()
                 class_body = utils.d_colorize(data_gpu["class_body"]).cpu().numpy()
-                class_body_full = ((utils.d_colorize(data_gpu["class_body_raw"]).squeeze(0).cpu().numpy().transpose(1,2,0)) * 255).astype(np.uint8)
-                class_body_resize = ((utils.d_colorize(data_gpu["class_body"]).squeeze(0).cpu().numpy().transpose(1,2,0)) * 255).astype(np.uint8)
+                # class_body_full = ((utils.d_colorize(data_gpu["class_body_raw"]).squeeze(0).cpu().numpy().transpose(1,2,0)) * 255).astype(np.uint8)
+                # class_body_resize = ((utils.d_colorize(data_gpu["class_body"]).squeeze(0).cpu().numpy().transpose(1,2,0)) * 255).astype(np.uint8)
 
-                # print (class_body_full)
-                # print (class_body_full.shape)
-                # cv2.imwrite('full_class_bodydebug_antialias.png', class_body_full)
-                # cv2.imwrite('full_class_bodydebugsmall_antialias.png', class_body_resize)
-                # print ('saving')
-                # exit()
+
                 fake_image = np.clip(fake_image.cpu().numpy(), 0, 1)
-                
-                outputs = np.concatenate((real_image, label, fake_image, source_image, iuv, class_body), axis=3)
 
+                outputs = np.concatenate((real_image, label, fake_image, source_image, iuv, class_body), axis=3)
+                outputs = fake_image
 
                 for output in outputs:
                     write_image = (output[::-1].transpose((1, 2, 0)) * 255).astype(np.uint8)

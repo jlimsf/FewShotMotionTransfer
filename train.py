@@ -96,8 +96,6 @@ def pretrain(config, writer, device_idxs=[0]):
     print (config)
     device = torch.device("cuda:" + str(device_idxs[0]))
 
-    # dist.init_process_group(backend='nccl', init_method="tcp://localhost:29501", rank=rank, world_size=4)
-
     dataset = ReconstructDataSet(config['dataroot'], config,to_crop=True)
     # dataset_RT = RT_ReconstructDataSet('/vid_data/FSMR_data/rebecca_taylor_top/train', config)
 
@@ -143,17 +141,22 @@ def pretrain(config, writer, device_idxs=[0]):
                      + losses.get("loss_mask", 0) * config['l_mask']
 
             loss_G.backward()
+            print (data['class_body'].shape)
+            class_body_resize = ((utils.d_colorize(data["class_body"]).squeeze(0).numpy().transpose(1,2,0)) * 255).astype(np.uint8)
+            cv2.imwrite('resize_example.png', class_body_resize)
+            print (class_body_resize)
+            exit()
             print (loss_G, losses['loss_G_L1'], losses['perceptual_loss'])
-            torchvision.utils.save_image(torchvision.utils.make_grid(data['image'], normalize=True), fp = 'image/{}_image.png'.format(i))
-            torchvision.utils.save_image(torchvision.utils.make_grid(data['class_image'], normalize=True), fp = 'class_image/{}_class_image.png'.format(i))
-            if torch.isnan(loss_G):
-                print ("Nan")
-                print (losses)
-                print (data["class_image"].shape)
-                # normalized_im = inv_normalize['image']
-                torchvision.utils.save_image(torchvision.utils.make_grid(data['image'], normalize=True), fp = 'image/nan_{}_image.png'.format(i))
-                torchvision.utils.save_image(torchvision.utils.make_grid(data['class_image'], normalize=True), fp = 'class_image/nan_{}_class_image.png'.format(i))
-                exit()
+            # torchvision.utils.save_image(torchvision.utils.make_grid(data['image'], normalize=True), fp = 'image/{}_image.png'.format(i))
+            # torchvision.utils.save_image(torchvision.utils.make_grid(data['class_image'], normalize=True), fp = 'class_image/{}_class_image.png'.format(i))
+            # if torch.isnan(loss_G):
+            #     print ("Nan")
+            #     print (losses)
+            #     print (data["class_image"].shape)
+            #     # normalized_im = inv_normalize['image']
+            #     torchvision.utils.save_image(torchvision.utils.make_grid(data['image'], normalize=True), fp = 'image/nan_{}_image.png'.format(i))
+            #     torchvision.utils.save_image(torchvision.utils.make_grid(data['class_image'], normalize=True), fp = 'class_image/nan_{}_class_image.png'.format(i))
+            #     exit()
 
             if i % 200 <= 100:
                 model.module.optimizer_G.step()
